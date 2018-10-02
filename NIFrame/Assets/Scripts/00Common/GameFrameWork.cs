@@ -11,7 +11,23 @@ namespace NI
     {
         public UILayer[] mLayers = new UILayer[0];
         public string mBaseConfigUrl = @"https://resourcekids.66uu.cn/kids/TestAds/";
-        public string mNativeBaseConfigUrl = @"Data/Table/base_tables";
+        public string mBundleName = @"base_tables";
+        public string mNativeBaseConfigUrl = @"Data/Table/";
+
+        string getPlatformString()
+        {
+#if UNITY_IOS
+            return "iOS";
+#elif UNITY_ANDROID
+            return "Android";
+#endif
+            return string.Empty;
+        }
+
+        public string getConfigUrl()
+        {
+            return mBaseConfigUrl + getPlatformString() + "/" + mBundleName;
+        }
 
         // Use this for initialization
         void Start()
@@ -27,7 +43,7 @@ namespace NI
 
             GameObject.DontDestroyOnLoad(this);
 
-            StartCoroutine(CheckVersion(StartGame()));
+            StartCoroutine(CheckVersion());
         }
 
         protected enum GameStartErrorCode
@@ -46,11 +62,11 @@ namespace NI
         protected Dictionary<int, object> mNativeVersionTable = null;
         protected VersionConfigTable mNativeVersionItem = null;
 
-        IEnumerator CheckVersion(IEnumerator onSucceed)
+        IEnumerator CheckVersion()
         {
             mGameStartErrorCode = GameStartErrorCode.GSEC_SUCCEED;
 
-            yield return LoadRemoteVersionInfo(mBaseConfigUrl);
+            yield return LoadRemoteVersionInfo(getConfigUrl());
             if(mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
             {
                 LoggerManager.Instance().LogProcessFormat("[Succeed]:拉取远端版本号 = [{0}] ... Id = [{1}]", mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
@@ -162,6 +178,7 @@ namespace NI
 
         protected IEnumerator LoadRemoteVersionInfo(string url)
         {
+            LoggerManager.Instance().LogFormat("remote url = {0}", url);
             UnityWebRequest www = UnityWebRequest.Get(url);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
             www.downloadHandler = handler;
@@ -196,7 +213,12 @@ namespace NI
 
         protected IEnumerator LoadNativeVersionFromStreamingAssetsBundle()
         {
+#if UNITY_IOS
+            var url = @"file://" + System.IO.Path.Combine(Application.streamingAssetsPath, mNativeBaseConfigUrl);
+#else
             var url = System.IO.Path.Combine(Application.streamingAssetsPath, mNativeBaseConfigUrl);
+#endif
+            LoggerManager.Instance().LogFormat("native url = {0}", url);
             UnityWebRequest www = UnityWebRequest.Get(url);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
             www.downloadHandler = handler;

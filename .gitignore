@@ -6,3 +6,7 @@ NIFrame/Temp/
 NIFrame/NIFrame.sln
 NIFrame/NIFrame.CSharp.csproj
 NIFrame/NIFrame.CSharp.Editor.csproj
+NIFrame/Assets/StreamingAssets/
+NIFrame/.vs/
+*.DS_Store
+*.csproj
