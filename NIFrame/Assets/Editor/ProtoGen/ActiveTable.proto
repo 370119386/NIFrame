@@ -1,0 +1,36 @@
+package ProtoTable;
+message ActiveTable
+{
+required sint32 ID = 1;
+required string Desc = 2;
+required sint32 PreTaskId = 3;
+required sint32 NextTaskId = 4;
+required string Awards = 5;
+required sint32 VipLv = 6;
+required string DanymicAwards = 7;
+required sint32 TemplateID = 8;
+required sint32 SortPriority = 9;
+required sint32 SortPriority2 = 10;
+required sint32 TakeCost = 11;
+required sint32 Param1 = 12;
+required sint32 DungeonId = 13;
+required string InitDesc = 14;
+required string PrefabKey = 15;
+required sint32 DoesWorkToRedPoint = 16;
+required sint32 RedPointWorkMode = 17;
+required string LinkInfo = 18;
+repeated sint32 LinkLimit = 19;
+required string UpdateDesc = 20;
+repeated sint32 ReplaceID = 21;
+required string Param0 = 22;
+required sint32 LevelLimit = 23;
+required sint32 IsWorkWithFullLevel = 24;
+required sint32 Abandon = 25;
+required string ConsumeItems = 26;
+required sint32 TaskCycleCount = 27;
+required string TaskCycleKey = 28;
+required string OverTaskNumKey = 29;
+required string FailedTaskNumKey = 30;
+required string ApplyChannel = 31;
+required sint32 Belong = 32;
+};
