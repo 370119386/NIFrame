@@ -42,4 +42,24 @@ public static class CommonFunction
         var layer = GameObject.Find(layername);
         return layer;
     }
+
+    public static string getPlatformString()
+    {
+#if UNITY_IOS
+        return "iOS";
+#elif UNITY_ANDROID
+        return "Android";
+#endif
+        return string.Empty;
+    }
+
+    public static string getStreamingAssetsPath(string path)
+    {
+#if UNITY_IOS
+        var url = @"file://" + System.IO.Path.Combine(Application.streamingAssetsPath, path);
+#else
+        var url = System.IO.Path.Combine(Application.streamingAssetsPath, path);
+#endif
+        return url;
+    }
 }

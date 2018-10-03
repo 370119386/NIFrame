@@ -140,6 +140,14 @@ namespace NI
             this.mState = (int)FrameStatus.FS_CLOSED;
         }
 
+        protected void StartCoroutine(IEnumerator enumerator)
+        {
+            if(null != mScriptBinder)
+            {
+                mScriptBinder.StartCoroutine(enumerator);
+            }
+        }
+
         protected virtual void OnOpenFrame()
         {
             
@@ -148,15 +156,6 @@ namespace NI
         protected virtual void OnCloseFrame()
         {
             
-        }
-
-        protected void FullScreen()
-        {
-            if(null != gameObject && null != gameObject.transform as RectTransform)
-            {
-                (gameObject.transform as RectTransform).offsetMin = Vector2.zero;
-                (gameObject.transform as RectTransform).offsetMax = Vector2.zero;
-            }
         }
 
         public void CloseByManager()

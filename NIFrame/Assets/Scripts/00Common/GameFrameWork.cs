@@ -14,19 +14,9 @@ namespace NI
         public string mBundleName = @"base_tables";
         public string mNativeBaseConfigUrl = @"Data/Table/";
 
-        string getPlatformString()
-        {
-#if UNITY_IOS
-            return "iOS";
-#elif UNITY_ANDROID
-            return "Android";
-#endif
-            return string.Empty;
-        }
-
         public string getConfigUrl()
         {
-            return mBaseConfigUrl + getPlatformString() + "/" + mBundleName;
+            return mBaseConfigUrl + CommonFunction.getPlatformString() + "/" + mBundleName;
         }
 
         // Use this for initialization
@@ -213,11 +203,7 @@ namespace NI
 
         protected IEnumerator LoadNativeVersionFromStreamingAssetsBundle()
         {
-#if UNITY_IOS
-            var url = @"file://" + System.IO.Path.Combine(Application.streamingAssetsPath, mNativeBaseConfigUrl);
-#else
-            var url = System.IO.Path.Combine(Application.streamingAssetsPath, mNativeBaseConfigUrl);
-#endif
+            var url = CommonFunction.getStreamingAssetsPath(mNativeBaseConfigUrl);
             LoggerManager.Instance().LogFormat("native url = {0}", url);
             UnityWebRequest www = UnityWebRequest.Get(url);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
