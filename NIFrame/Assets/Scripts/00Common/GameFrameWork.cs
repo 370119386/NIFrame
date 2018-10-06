@@ -29,6 +29,7 @@ namespace NI
             {
                 frameHandle = this,
                 BaseConfigUrl = mBaseConfigUrl,
+                localResourcesInfoTable = TableManager.Instance().ReadTableFromResourcesFile<ResourceInfoTable>(@"Data/Table"),
             });
 
             GameObject.DontDestroyOnLoad(this);

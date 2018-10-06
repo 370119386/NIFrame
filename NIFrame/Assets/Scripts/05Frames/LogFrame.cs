@@ -15,6 +15,7 @@ namespace NI
         UnityEngine.UI.Toggle mFilter_2;
         UnityEngine.UI.Toggle mFilter_3;
         UnityEngine.UI.Text mGeneratorText;
+        UnityEngine.UI.Image mgameIcon;
 
         protected override string GetPrefabPath()
         {
@@ -30,6 +31,7 @@ namespace NI
             mFilter_2 = mScriptBinder.GetObject("Filter_2") as UnityEngine.UI.Toggle;
             mFilter_3 = mScriptBinder.GetObject("Filter_3") as UnityEngine.UI.Toggle;
             mGeneratorText = mScriptBinder.GetObject("GeneratorText") as UnityEngine.UI.Text;
+            mgameIcon = mScriptBinder.GetObject("gameIcon") as UnityEngine.UI.Image;
         }
 
         protected void _InitLogList()
@@ -121,6 +123,17 @@ namespace NI
             _InitLogList();
             _UpdateLogList();
             _InitFilters();
+
+            if(null != mgameIcon)
+            {
+                mgameIcon.sprite = AssetLoaderManager.Instance().LoadResources<Sprite>(@"UI/Image/pck_ui_lobby_main_1|icon_brnn_bg", AssetType.AT_SPRITE);
+            }
+
+            var assetBinary = AssetLoaderManager.Instance().LoadResources<AssetBinary>(@"data/table/base_tables|VersionConfigTable", AssetType.AT_ASSETS);
+            if(null != assetBinary)
+            {
+                Debug.LogErrorFormat("Load AssetBinary succeed ...");
+            }
 
             if (null != mbtnClose)
             {

@@ -1,0 +1,14 @@
+package ProtoTable;
+message ResourceInfoTable
+{
+required sint32 ID = 1;
+enum eLoadType
+{
+	LoadFromResources = 0;	//?resources??
+	LoadFromBundle = 1;	//?assetBundle??
+}
+required eLoadType LoadType = 2;
+repeated string Path = 3;
+required string PathHashKey = 4;
+required sint32 TypeId = 5;
+};

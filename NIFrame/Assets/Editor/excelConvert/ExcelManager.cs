@@ -107,7 +107,12 @@ namespace npoi
 				{
 					if (eConvertType == ExcelHelper.ConvertType.CT_PROTO) 
 					{
-						unit.CreateProto (Path.GetFullPath (applicationPath + ExcelConfig.PROTO_PATH));
+                        var protoDir = Path.GetFullPath(applicationPath + ExcelConfig.PROTO_PATH);
+                        if(!Directory.Exists(protoDir))
+                        {
+                            Directory.CreateDirectory(protoDir);
+                        }
+                        unit.CreateProto (protoDir);
 					} 
 					else 
 					{

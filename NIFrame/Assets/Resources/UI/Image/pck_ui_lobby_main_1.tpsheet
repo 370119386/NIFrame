@@ -1,0 +1,39 @@
+#
+# Sprite sheet data for Unity.
+#
+# To import these sprites into your Unity project, download "TexturePackerImporter":
+# http://www.codeandweb.com/texturepacker/unity
+#
+# Sprite sheet: pck_ui_lobby_main_1.png (1024 x 1024)
+# $TexturePacker:SmartUpdate:c68d6df040fe50dee3a9f892122601bc:4973f27cc709e85d57ec5e4cfe547339:d58667cb5201a20e4778e04bd2162703$
+#
+
+icon_bjl_bg;289;557;285;230;0.5;0.5
+icon_bjl_chip_1;2;3;89;62;0.5;0.5
+icon_bjl_chip_2;254;122;114;79;0.5;0.5
+icon_bjl_chip_3;869;523;135;98;0.5;0.5
+icon_bjl_gold;199;585;85;66;0.5;0.5
+icon_bjl_poker;289;347;264;208;0.5;0.5
+icon_bqznn_poker_2;178;203;84;86;0.5;0.5
+icon_bqznn_poker_5;187;2;52;72;0.5;0.5
+icon_bqznn_poker_A;199;653;86;83;0.5;0.5
+icon_bqznn_poker_K;178;116;74;85;0.5;0.5
+icon_bqznn_poker_Q;241;33;65;81;0.5;0.5
+icon_brnn_bg;2;291;285;230;0.5;0.5
+icon_ebg_bg;582;560;285;230;0.5;0.5
+icon_lhdz_bg;582;792;285;230;0.5;0.5
+icon_lhdz_hu;869;847;148;175;0.5;0.5
+icon_lhdz_long;869;623;140;222;0.5;0.5
+icon_qznn_bg;292;789;288;233;0.5;0.5
+icon_qznn_cattle;2;525;195;211;0.5;0.5
+icon_qznn_hand;308;55;63;65;0.5;0.5
+icon_qznn_zi;576;509;277;49;0.5;0.5
+icon_tbnn_bg;2;789;288;233;0.5;0.5
+icon_tbnn_cattle;2;67;174;222;0.5;0.5
+icon_tbnn_gold_1;855;465;162;56;0.5;0.5
+icon_tbnn_gold_2;199;533;49;50;0.5;0.5
+icon_tbnn_gold_fly_1;178;76;42;38;0.5;0.5
+icon_tbnn_gold_fly_2;93;25;44;40;0.5;0.5
+icon_tbnn_gold_fly_3;264;224;71;65;0.5;0.5
+icon_tbnn_gold_fly_4;139;27;46;38;0.5;0.5
+icon_tbnn_zi;2;738;277;49;0.5;0.5

@@ -22,27 +22,45 @@ namespace ProtoTable
       get { return _ID; }
       set { _ID = value; }
     }
+    private ProtoTable.ResourceInfoTable.eLoadType _LoadType;
+    [global::ProtoBuf.ProtoMember(2, IsRequired = true, Name=@"LoadType", DataFormat = global::ProtoBuf.DataFormat.TwosComplement)]
+    public ProtoTable.ResourceInfoTable.eLoadType LoadType
+    {
+      get { return _LoadType; }
+      set { _LoadType = value; }
+    }
     private readonly global::System.Collections.Generic.List<string> _Path = new global::System.Collections.Generic.List<string>();
-    [global::ProtoBuf.ProtoMember(2, Name=@"Path", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    [global::ProtoBuf.ProtoMember(3, Name=@"Path", DataFormat = global::ProtoBuf.DataFormat.Default)]
     public global::System.Collections.Generic.List<string> Path
     {
       get { return _Path; }
     }
   
+    private string _PathHashKey;
+    [global::ProtoBuf.ProtoMember(4, IsRequired = true, Name=@"PathHashKey", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    public string PathHashKey
+    {
+      get { return _PathHashKey; }
+      set { _PathHashKey = value; }
+    }
     private int _TypeId;
-    [global::ProtoBuf.ProtoMember(3, IsRequired = true, Name=@"TypeId", DataFormat = global::ProtoBuf.DataFormat.ZigZag)]
+    [global::ProtoBuf.ProtoMember(5, IsRequired = true, Name=@"TypeId", DataFormat = global::ProtoBuf.DataFormat.ZigZag)]
     public int TypeId
     {
       get { return _TypeId; }
       set { _TypeId = value; }
     }
-    private string _Desc;
-    [global::ProtoBuf.ProtoMember(4, IsRequired = true, Name=@"Desc", DataFormat = global::ProtoBuf.DataFormat.Default)]
-    public string Desc
+    [global::ProtoBuf.ProtoContract(Name=@"eLoadType")]
+    public enum eLoadType
     {
-      get { return _Desc; }
-      set { _Desc = value; }
+            
+      [global::ProtoBuf.ProtoEnum(Name=@"LoadFromResources", Value=0)]
+      LoadFromResources = 0,
+            
+      [global::ProtoBuf.ProtoEnum(Name=@"LoadFromBundle", Value=1)]
+      LoadFromBundle = 1
     }
+  
     public void Parse(ProtoBuf.ProtoReader source){
         int fieldNumber = 0;
         while ((fieldNumber = source.ReadFieldHeader()) > 0)
@@ -59,20 +77,24 @@ namespace ProtoTable
                     ID = source.ReadInt32();
                     break;
                     
-            case 2:   //Path LABEL_REPEATED TYPE_STRING  TwosComplement
+            case 2:   //LoadType LABEL_REQUIRED TYPE_ENUM .ProtoTable.ResourceInfoTable.eLoadType TwosComplement
+                    LoadType = (ProtoTable.ResourceInfoTable.eLoadType)source.ReadInt32();
+                    break;
+                    
+            case 3:   //Path LABEL_REPEATED TYPE_STRING  TwosComplement
                     int Pathfield = source.FieldNumber;
                     do{
                         Path.Add(source.ReadString());
                     } while(source.TryReadFieldHeader(Pathfield));
                     break;
                     
-            case 3:   //TypeId LABEL_REQUIRED TYPE_SINT32  ZigZag
-                    source.Hint(ProtoBuf.WireType.SignedVariant); 
-                    TypeId = source.ReadInt32();
+            case 4:   //PathHashKey LABEL_REQUIRED TYPE_STRING  TwosComplement
+                    PathHashKey = source.ReadString();
                     break;
                     
-            case 4:   //Desc LABEL_REQUIRED TYPE_STRING  TwosComplement
-                    Desc = source.ReadString();
+            case 5:   //TypeId LABEL_REQUIRED TYPE_SINT32  ZigZag
+                    source.Hint(ProtoBuf.WireType.SignedVariant); 
+                    TypeId = source.ReadInt32();
                     break;
                     
             }
