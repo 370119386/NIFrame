@@ -126,7 +126,8 @@ namespace NI
 
             if(null != mgameIcon)
             {
-                mgameIcon.sprite = AssetLoaderManager.Instance().LoadResources<Sprite>(@"UI/Image/pck_ui_lobby_main_1|icon_brnn_bg", AssetType.AT_SPRITE);
+                //mgameIcon.sprite = AssetLoaderManager.Instance().LoadResources<Sprite>(@"UI/Image/pck_ui_lobby_main_1|icon_brnn_bg", AssetType.AT_SPRITE);
+                mgameIcon.sprite = AssetLoaderManager.Instance().LoadResources<Sprite>(@"ui/image/pck_ui_lobby_main_1|pck_ui_lobby_main_1|icon_ebg_bg", AssetType.AT_SPRITE);
             }
 
             var assetBinary = AssetLoaderManager.Instance().LoadResources<AssetBinary>(@"data/table/base_tables|VersionConfigTable", AssetType.AT_ASSETS);

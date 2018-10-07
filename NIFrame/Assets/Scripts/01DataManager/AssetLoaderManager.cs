@@ -127,6 +127,12 @@ namespace NI
 
             if(eAssetType == AssetType.AT_PREFAB)
             {
+                if (resInfoItem.Path.Count != 2)
+                {
+                    LoggerManager.Instance().LogErrorFormat("Load Prefab From AssetBundle Failed ... need 2 argvs ... now is {0}",resInfoItem.Path.Count);
+                    return default(T);
+                }
+
                 var assetInst = assetBundle.LoadAsset<T>(resInfoItem.Path[1]);
                 if(null == assetInst)
                 {
@@ -142,9 +148,9 @@ namespace NI
             {
                 Sprite assetInst = null;
 
-                if(resInfoItem.Path.Count == 3)
+                if(resInfoItem.Path.Count != 3)
                 {
-                    LoggerManager.Instance().LogErrorFormat("Load Sprite From AssetBundle Failed ... need 3 argvs ...");
+                    LoggerManager.Instance().LogErrorFormat("Load Sprite From AssetBundle Failed ... need 3 argvs ...now is {0}",resInfoItem.Path.Count);
                     return default(T);
                 }
 
