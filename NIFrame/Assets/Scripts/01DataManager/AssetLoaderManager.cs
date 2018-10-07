@@ -11,6 +11,7 @@ namespace NI
         public GameFrameWork frameHandle;
         public string BaseConfigUrl;
         public Dictionary<int, object> localResourcesInfoTable;
+        public Dictionary<int, object> remoteResourcesInfoTable;
     }
 
     public enum AssetType
@@ -62,15 +63,55 @@ namespace NI
 
                         if(0 != iHashCode)
                         {
-                            mLocalResourcesInfoTable.Add(iHashCode, resItem);
+                            if(!mLocalResourcesInfoTable.ContainsKey(iHashCode))
+                            {
+                                mLocalResourcesInfoTable.Add(iHashCode, resItem);
+                            }
+                            else
+                            {
+                                var orgItem = mLocalResourcesInfoTable[iHashCode];
+                                mLocalResourcesInfoTable[iHashCode] = resItem;
+                                LoggerManager.Instance().LogErrorFormat("mLocalResourcesInfoTable hash key repeated for id = {0} and id = {1}", orgItem.ID,resItem.ID);
+                            }
                         }
                     }
                 }
             }
+
             mRemoteResourcesInfoTable.Clear();
+            if(null != data.remoteResourcesInfoTable)
+            {
+                var iter = data.remoteResourcesInfoTable.GetEnumerator();
+                while (iter.MoveNext())
+                {
+                    var resItem = iter.Current.Value as ResourceInfoTable;
+                    if (null != resItem)
+                    {
+                        int iHashCode = 0;
+                        if (!string.IsNullOrEmpty(resItem.PathHashKey))
+                        {
+                            iHashCode = resItem.PathHashKey.GetHashCode();
+                        }
+
+                        if (0 != iHashCode)
+                        {
+                            if (!mRemoteResourcesInfoTable.ContainsKey(iHashCode))
+                            {
+                                mRemoteResourcesInfoTable.Add(iHashCode, resItem);
+                            }
+                            else
+                            {
+                                var orgItem = mRemoteResourcesInfoTable[iHashCode];
+                                mRemoteResourcesInfoTable[iHashCode] = resItem;
+                                LoggerManager.Instance().LogErrorFormat("mRemoteResourcesInfoTable hash key repeated for id = {0} and id = {1}", orgItem.ID, resItem.ID);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        public ResourceInfoTable getResourceInfo(int iHashCode)
+        protected ResourceInfoTable getResourceInfo(int iHashCode)
         {
             if(mRemoteResourcesInfoTable.ContainsKey(iHashCode))
             {
@@ -199,9 +240,9 @@ namespace NI
             if(resInfoItem.Path.Count > 1)
             {
                 AssetBundle assetBundle = null;
-                if(!mAlivedBundles.ContainsKey(resInfoItem.Path[0]))
+                var bundlePath = CommonFunction.getStreamingAssetsPath(resInfoItem.Path[0]);
+                if (!mAlivedBundles.ContainsKey(bundlePath))
                 {
-                    var bundlePath = CommonFunction.getStreamingAssetsPath(resInfoItem.Path[0]);
                     assetBundle = AssetBundle.LoadFromFile(bundlePath);
                     if (null != assetBundle)
                     {
@@ -210,7 +251,7 @@ namespace NI
                 }
                 else
                 {
-                    assetBundle = mAlivedBundles[resInfoItem.Path[0]];
+                    assetBundle = mAlivedBundles[bundlePath];
                 }
 
                 if(null == assetBundle)

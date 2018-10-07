@@ -30,6 +30,7 @@ namespace NI
                 frameHandle = this,
                 BaseConfigUrl = mBaseConfigUrl,
                 localResourcesInfoTable = TableManager.Instance().ReadTableFromResourcesFile<ResourceInfoTable>(@"Data/Table"),
+                remoteResourcesInfoTable = null,
             });
 
             GameObject.DontDestroyOnLoad(this);
@@ -46,6 +47,7 @@ namespace NI
             CSEC_QUERY_VERSION_ITEM_FAILED = 4,
             CSEC_NEED_REDOWNLOAD = 5,
             CSEC_VERSION_UPDATE_FAILED = 6,
+            CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED = 7,
         }
         protected GameStartErrorCode mGameStartErrorCode = GameStartErrorCode.GSEC_SUCCEED;
         protected Dictionary<int, object> mRemoteVersionTable = null;
@@ -121,7 +123,8 @@ namespace NI
                     yield break;
                 }
 
-                yield return FetchFilesFromRemote();
+                yield return FetchFilesFromRemote(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+
                 if(mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
                 {
                     LoggerManager.Instance().LogProcessFormat("[Succeed]:更新客户端版本成功 = [{0}|{1}] ... [{2}|{3}]", 
@@ -162,9 +165,51 @@ namespace NI
             yield return null;
         }
 
-        protected IEnumerator FetchFilesFromRemote()
+        protected IEnumerator FetchFilesFromRemote(VersionConfigTable version)
         {
-            yield return null;
+            string url = string.Empty;
+#if UNITY_IOS
+            url = version.IosUrl;
+#elif UNITY_ANDROID
+            url = version.AndroidUrl;
+#endif
+            LoggerManager.Instance().LogProcessFormat("[Try]:准备提取远端版本号...{0},url={1}", version.Desc, url);
+
+            yield return DownLoadManifestBundle(url);
+        }
+
+        protected IEnumerator DownLoadManifestBundle(string url)
+        {
+            UnityWebRequest www = UnityWebRequest.Get(url);
+            DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
+            www.downloadHandler = handler;
+            yield return www.Send();
+
+            if (www.isError)
+            {
+                LoggerManager.Instance().LogError(www.error);
+                mGameStartErrorCode = GameStartErrorCode.CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED;
+            }
+            else
+            {
+                AssetBundle bundle = handler.assetBundle;
+                if (null == bundle)
+                {
+                    mGameStartErrorCode = GameStartErrorCode.CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED;
+                    yield break;
+                }
+
+                System.IO.File.WriteAllBytes(bundle.name, handler.data);
+
+                //1 load remote version config table
+                AssetBundleManifest manifest = bundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
+                if(null != manifest)
+                {
+                    LoggerManager.Instance().LogProcessFormat("down load manifest succeed ...");
+                }
+
+                bundle.Unload(true);
+            }
         }
 
         protected IEnumerator LoadRemoteVersionInfo(string url)
@@ -215,7 +260,7 @@ namespace NI
             {
                 AssetBundle bundle = handler.assetBundle;
                 mNativeVersionTable = TableManager.Instance().ReadTableFromAssetBundle<VersionConfigTable>(bundle);
-                mNativeVersionItem = getLatestVersionItem(mRemoteVersionTable);
+                mNativeVersionItem = getLatestVersionItem(mNativeVersionTable);
                 bundle.Unload(true);
 
                 if(null != mNativeVersionItem)
