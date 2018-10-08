@@ -1,0 +1,11 @@
+package ProtoTable;
+message VersionConfigTable
+{
+required sint32 ID = 1;
+required sint32 Version = 2;
+required sint32 NeedUpdateAll = 3;
+required string Desc = 4;
+repeated string BaseAssetBundles = 5;
+required string IosUrl = 6;
+required string AndroidUrl = 7;
+};

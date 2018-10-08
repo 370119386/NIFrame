@@ -76,6 +76,7 @@ namespace NI
         public void Log(string log)
         {
             var logItem = new LogItem { eLogType = LogType.LT_NORMAL, log = log };
+            Debug.LogFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_NORMAL));
             if (0 == (flag & Filter))
@@ -88,6 +89,7 @@ namespace NI
         public void LogFormat(string fmt,params object[] argv)
         {
             var logItem = new LogItem { eLogType = LogType.LT_NORMAL, log = string.Format(fmt, argv) };
+            Debug.LogFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_NORMAL));
             if (0 == (flag & Filter))
@@ -100,6 +102,7 @@ namespace NI
         public void LogWarning(string log)
         {
             var logItem = new LogItem { eLogType = LogType.LT_WARNING, log = log };
+            Debug.LogWarningFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_WARNING));
             if (0 == (flag & Filter))
@@ -112,6 +115,7 @@ namespace NI
         public void LogWarningFormat(string fmt, params object[] argv)
         {
             var logItem = new LogItem { eLogType = LogType.LT_WARNING, log = string.Format(fmt, argv) };
+            Debug.LogWarningFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_WARNING));
             if (0 == (flag & Filter))
@@ -124,6 +128,7 @@ namespace NI
         public void LogError(string log)
         {
             var logItem = new LogItem { eLogType = LogType.LT_ERROR, log = log };
+            Debug.LogErrorFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_ERROR));
             if (0 == (flag & Filter))
@@ -136,6 +141,7 @@ namespace NI
         public void LogErrorFormat(string fmt, params object[] argv)
         {
             var logItem = new LogItem { eLogType = LogType.LT_ERROR, log = string.Format(fmt, argv) };
+            Debug.LogErrorFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_ERROR));
             if (0 == (flag & Filter))
@@ -148,6 +154,7 @@ namespace NI
         public void LogProcess(string log)
         {
             var logItem = new LogItem { eLogType = LogType.LT_PROCESS, log = log };
+            Debug.LogErrorFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_PROCESS));
             if (0 == (flag & Filter))
@@ -160,6 +167,7 @@ namespace NI
         public void LogProcessFormat(string fmt, params object[] argv)
         {
             var logItem = new LogItem { eLogType = LogType.LT_PROCESS, log = string.Format(fmt, argv) };
+            Debug.LogErrorFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_PROCESS));
             if (0 == (flag & Filter))

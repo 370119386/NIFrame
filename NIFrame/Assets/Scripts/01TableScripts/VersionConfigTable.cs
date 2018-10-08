@@ -43,15 +43,22 @@ namespace ProtoTable
       get { return _Desc; }
       set { _Desc = value; }
     }
+    private readonly global::System.Collections.Generic.List<string> _BaseAssetBundles = new global::System.Collections.Generic.List<string>();
+    [global::ProtoBuf.ProtoMember(5, Name=@"BaseAssetBundles", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    public global::System.Collections.Generic.List<string> BaseAssetBundles
+    {
+      get { return _BaseAssetBundles; }
+    }
+  
     private string _IosUrl;
-    [global::ProtoBuf.ProtoMember(5, IsRequired = true, Name=@"IosUrl", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    [global::ProtoBuf.ProtoMember(6, IsRequired = true, Name=@"IosUrl", DataFormat = global::ProtoBuf.DataFormat.Default)]
     public string IosUrl
     {
       get { return _IosUrl; }
       set { _IosUrl = value; }
     }
     private string _AndroidUrl;
-    [global::ProtoBuf.ProtoMember(6, IsRequired = true, Name=@"AndroidUrl", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    [global::ProtoBuf.ProtoMember(7, IsRequired = true, Name=@"AndroidUrl", DataFormat = global::ProtoBuf.DataFormat.Default)]
     public string AndroidUrl
     {
       get { return _AndroidUrl; }
@@ -87,11 +94,18 @@ namespace ProtoTable
                     Desc = source.ReadString();
                     break;
                     
-            case 5:   //IosUrl LABEL_REQUIRED TYPE_STRING  TwosComplement
+            case 5:   //BaseAssetBundles LABEL_REPEATED TYPE_STRING  TwosComplement
+                    int BaseAssetBundlesfield = source.FieldNumber;
+                    do{
+                        BaseAssetBundles.Add(source.ReadString());
+                    } while(source.TryReadFieldHeader(BaseAssetBundlesfield));
+                    break;
+                    
+            case 6:   //IosUrl LABEL_REQUIRED TYPE_STRING  TwosComplement
                     IosUrl = source.ReadString();
                     break;
                     
-            case 6:   //AndroidUrl LABEL_REQUIRED TYPE_STRING  TwosComplement
+            case 7:   //AndroidUrl LABEL_REQUIRED TYPE_STRING  TwosComplement
                     AndroidUrl = source.ReadString();
                     break;
                     

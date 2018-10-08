@@ -73,7 +73,7 @@ namespace NI
             yield return LoadNativeVersionInfo();
             if (mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
             {
-                LoggerManager.Instance().LogProcessFormat("[Succeed]:拉取本地版本号 = [{0}] ... Id = [{1}]", mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
+                LoggerManager.Instance().LogProcessFormat("[Succeed]:拉取本地版本号 = [{0}] ... Id = [{1}]", mNativeVersionItem.Desc, mNativeVersionItem.ID);
             }
             else
             {
@@ -123,7 +123,9 @@ namespace NI
                     yield break;
                 }
 
-                yield return FetchFilesFromRemote(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+                yield return AssetBundleManager.Instance().DownLoadCurrentVersionBundles(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+
+                //yield return FetchFilesFromRemote(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
 
                 if(mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
                 {
@@ -244,6 +246,33 @@ namespace NI
                 }
 
                 bundle.Unload(true);
+            }
+        }
+
+        protected IEnumerator LoadTestAssetBundleFromFile()
+        {
+            var url = CommonFunction.getStreamingAssetsPath("ui/image/pck_ui_lobby_main_1");
+            LoggerManager.Instance().LogFormat("native url = {0}", url);
+            UnityWebRequest www = UnityWebRequest.Get(url);
+            DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
+            www.downloadHandler = handler;
+            yield return www.Send();
+
+            if (www.isError)
+            {
+                Debug.LogErrorFormat(www.error);
+            }
+            else
+            {
+                AssetBundle bundle = handler.assetBundle;
+                if(null == bundle)
+                {
+                    Debug.LogErrorFormat("load test bundle failed ...");
+                }
+                else
+                {
+                    Debug.LogErrorFormat("Load assetbundle succeed ... for test asset bundle ...");
+                }
             }
         }
 
