@@ -53,6 +53,11 @@ public static class CommonFunction
         return string.Empty;
     }
 
+    public static string getAssetBundleSavePath(string bundleName)
+    {
+        return Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+    }
+
     public static string getStreamingAssetsPath(string path)
     {
 #if UNITY_IOS

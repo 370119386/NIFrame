@@ -48,6 +48,7 @@ namespace NI
             CSEC_NEED_REDOWNLOAD = 5,
             CSEC_VERSION_UPDATE_FAILED = 6,
             CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED = 7,
+            CSEC_DOWNLOAD_LATEST_VERSION_FAILED = 8,
         }
         protected GameStartErrorCode mGameStartErrorCode = GameStartErrorCode.GSEC_SUCCEED;
         protected Dictionary<int, object> mRemoteVersionTable = null;
@@ -123,27 +124,29 @@ namespace NI
                     yield break;
                 }
 
-                yield return AssetBundleManager.Instance().DownLoadCurrentVersionBundles(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+                yield return AssetBundleManager.Instance().DownLoadCurrentVersionBundles(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable,null,()=>
+                {
+                    mGameStartErrorCode = GameStartErrorCode.CSEC_DOWNLOAD_LATEST_VERSION_FAILED;
+                });
 
-                //yield return FetchFilesFromRemote(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+                if(mGameStartErrorCode != GameStartErrorCode.GSEC_SUCCEED)
+                {
+                    ReportError(mGameStartErrorCode);
+                    yield break;
+                }
 
                 if(mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
                 {
                     LoggerManager.Instance().LogProcessFormat("[Succeed]:更新客户端版本成功 = [{0}|{1}] ... [{2}|{3}]", 
                         mNativeVersionItem.Desc, mNativeVersionItem.ID, mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
                 }
-                else
-                {
-                    ReportError(mGameStartErrorCode);
-                    yield break;
-                }
             }
             else
             {
                 LoggerManager.Instance().LogProcessFormat("[Succeed]:校验版本号成功 = [{0}] ... Id = [{1}]", mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
-            }
 
-            yield return StartGame();
+                yield return StartGame();
+            }
         }
 
         void ReportError(GameStartErrorCode error)

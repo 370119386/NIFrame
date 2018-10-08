@@ -154,7 +154,7 @@ namespace NI
         public void LogProcess(string log)
         {
             var logItem = new LogItem { eLogType = LogType.LT_PROCESS, log = log };
-            Debug.LogErrorFormat(logItem.log);
+            Debug.LogFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_PROCESS));
             if (0 == (flag & Filter))
@@ -167,7 +167,7 @@ namespace NI
         public void LogProcessFormat(string fmt, params object[] argv)
         {
             var logItem = new LogItem { eLogType = LogType.LT_PROCESS, log = string.Format(fmt, argv) };
-            Debug.LogErrorFormat(logItem.log);
+            Debug.LogFormat(logItem.log);
             mLogItems.Add(logItem);
             int flag = (1 << ((int)LogType.LT_PROCESS));
             if (0 == (flag & Filter))
