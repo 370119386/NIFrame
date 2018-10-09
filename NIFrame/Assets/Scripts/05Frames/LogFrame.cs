@@ -83,7 +83,7 @@ namespace NI
                         float fh = mGenerator.GetPreferredHeight(logItem.log, mGenerationSetting) / mGeneratorText.pixelsPerUnit;
                         size.x = fw;
                         size.y = fh;
-                        Debug.LogErrorFormat("size={0}", size);
+                        //Debug.LogErrorFormat("size={0}", size);
                     }
                     elementsSize.Add(size);
                 }

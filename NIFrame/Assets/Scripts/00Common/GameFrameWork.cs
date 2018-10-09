@@ -12,7 +12,6 @@ namespace NI
         public UILayer[] mLayers = new UILayer[0];
         public string mBaseConfigUrl = @"https://resourcekids.66uu.cn/kids/TestAds/";
         public string mBundleName = @"base_tables";
-        public string mNativeBaseConfigUrl = @"Data/Table/";
 
         public string getConfigUrl()
         {
@@ -47,8 +46,8 @@ namespace NI
             CSEC_QUERY_VERSION_ITEM_FAILED = 4,
             CSEC_NEED_REDOWNLOAD = 5,
             CSEC_VERSION_UPDATE_FAILED = 6,
-            CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED = 7,
-            CSEC_DOWNLOAD_LATEST_VERSION_FAILED = 8,
+            CSEC_DOWNLOAD_LATEST_VERSION_FAILED = 7,
+            CSEC_CHECK_VERSION_MD5_FAILED = 8,
         }
         protected GameStartErrorCode mGameStartErrorCode = GameStartErrorCode.GSEC_SUCCEED;
         protected Dictionary<int, object> mRemoteVersionTable = null;
@@ -135,17 +134,43 @@ namespace NI
                     yield break;
                 }
 
-                if(mGameStartErrorCode == GameStartErrorCode.GSEC_SUCCEED)
+                LoggerManager.Instance().LogProcessFormat("[Succeed]:更新客户端版本成功 = [{0}|{1}] ... [{2}|{3}]",
+                    mNativeVersionItem.Desc, mNativeVersionItem.ID, mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
+
+                yield return AssetBundleManager.Instance().CheckVersionFileMD5(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable, null, () =>
                 {
-                    LoggerManager.Instance().LogProcessFormat("[Succeed]:更新客户端版本成功 = [{0}|{1}] ... [{2}|{3}]", 
-                        mNativeVersionItem.Desc, mNativeVersionItem.ID, mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
+                    mGameStartErrorCode = GameStartErrorCode.CSEC_CHECK_VERSION_MD5_FAILED;
+                });
+
+                if (mGameStartErrorCode != GameStartErrorCode.GSEC_SUCCEED)
+                {
+                    ReportError(mGameStartErrorCode);
+                    yield break;
                 }
+
+                LoggerManager.Instance().LogProcessFormat("[Succeed]:校验文件MD5成功 ...");
+
+                yield return StartGame(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
             }
             else
             {
                 LoggerManager.Instance().LogProcessFormat("[Succeed]:校验版本号成功 = [{0}] ... Id = [{1}]", mRemoteVersionItem.Desc, mRemoteVersionItem.ID);
 
-                yield return StartGame();
+                yield return AssetBundleManager.Instance().CheckVersionFileMD5(mNativeVersionTable[mNativeVersionItem.ID] as VersionConfigTable, null, () =>
+                {
+                    mGameStartErrorCode = GameStartErrorCode.CSEC_CHECK_VERSION_MD5_FAILED;
+                });
+
+                if (mGameStartErrorCode != GameStartErrorCode.GSEC_SUCCEED)
+                {
+                    ReportError(mGameStartErrorCode);
+                    LoggerManager.Instance().LogProcessFormat("[Failed]:校验文件MD5失败 ...");
+                    yield break;
+                }
+
+                LoggerManager.Instance().LogProcessFormat("[Succeed]:校验文件MD5成功 ...");
+
+                yield return StartGame(mNativeVersionTable[mNativeVersionItem.ID] as VersionConfigTable);
             }
         }
 
@@ -160,61 +185,83 @@ namespace NI
                             LoggerManager.Instance().LogErrorFormat("down load remote version table failed ...");
                             break;
                         }
+                    case GameStartErrorCode.GSEC_NATIVE_VERSITION_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("down load native version table failed ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_FETCH_VERSION_CHANGED_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("native version error ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_QUERY_VERSION_ITEM_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("version item query failed ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_NEED_REDOWNLOAD:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("game need redownloaded ... has global updated ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_VERSION_UPDATE_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("version update failed ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_DOWNLOAD_LATEST_VERSION_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("download latest version failed ...");
+                            break;
+                        }
+                    case GameStartErrorCode.CSEC_CHECK_VERSION_MD5_FAILED:
+                        {
+                            LoggerManager.Instance().LogErrorFormat("check version failed ... need redownload ...");
+                            break;
+                        }
                 }
             }
         }
 
-        protected IEnumerator StartGame()
+        protected IEnumerator StartGame(VersionConfigTable version)
         {
-            LoggerManager.Instance().LogProcessFormat("[Succeed]:开始进入游戏 ...");
+            LoggerManager.Instance().LogProcessFormat("[Succeed]:开始加载游戏[BaseAssetBundles] ... 版本号 = [{0}]",version.Desc);
+
+            bool succeed = true;
+            var platformBundleName = CommonFunction.getPlatformString();
+            yield return AssetBundleManager.Instance().LoadAssetBundle(platformBundleName, null,()=>
+            {
+                LoggerManager.Instance().LogErrorFormat("[Failed]:加载 [{0}] platform assetbundle failed", platformBundleName);
+                succeed = false;
+            });
+
+            if(!succeed)
+            {
+                yield break;
+            }
+            LoggerManager.Instance().LogProcessFormat("[Succeed]:加载 [{0}] platform assetbundle succeed", platformBundleName);
+
+            for(int i = 0; i < version.BaseAssetBundles.Count; ++i)
+            {
+                var bundleName = version.BaseAssetBundles[i];
+                if (!string.IsNullOrEmpty(bundleName))
+                {
+                    yield return AssetBundleManager.Instance().LoadAssetBundle(bundleName, null, () =>
+                    {
+                        LoggerManager.Instance().LogErrorFormat("[Failed]:加载 [{0}] general assetbundle failed", bundleName);
+                        succeed = false;
+                    });
+                    if(!succeed)
+                    {
+                        yield break;
+                    }
+                    LoggerManager.Instance().LogProcessFormat("[Succeed]:加载 [{0}] general assetbundle succeed", bundleName);
+                }
+            }
             yield return null;
-        }
 
-        protected IEnumerator FetchFilesFromRemote(VersionConfigTable version)
-        {
-            string url = string.Empty;
-#if UNITY_IOS
-            url = version.IosUrl;
-#elif UNITY_ANDROID
-            url = version.AndroidUrl;
-#endif
-            LoggerManager.Instance().LogProcessFormat("[Try]:准备提取远端版本号...{0},url={1}", version.Desc, url);
-
-            yield return DownLoadManifestBundle(url);
-        }
-
-        protected IEnumerator DownLoadManifestBundle(string url)
-        {
-            UnityWebRequest www = UnityWebRequest.Get(url);
-            DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
-            www.downloadHandler = handler;
-            yield return www.Send();
-
-            if (www.isError)
-            {
-                LoggerManager.Instance().LogError(www.error);
-                mGameStartErrorCode = GameStartErrorCode.CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED;
-            }
-            else
-            {
-                AssetBundle bundle = handler.assetBundle;
-                if (null == bundle)
-                {
-                    mGameStartErrorCode = GameStartErrorCode.CSEC_DOWNLOAD_MANIFEST_BUNDLE_FAILED;
-                    yield break;
-                }
-
-                System.IO.File.WriteAllBytes(bundle.name, handler.data);
-
-                //1 load remote version config table
-                AssetBundleManifest manifest = bundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
-                if(null != manifest)
-                {
-                    LoggerManager.Instance().LogProcessFormat("down load manifest succeed ...");
-                }
-
-                bundle.Unload(true);
-            }
+            LoggerManager.Instance().LogProcessFormat("[Succeed]:开始进入游戏 ... 版本号 = [{0}]", version.Desc);
         }
 
         protected IEnumerator LoadRemoteVersionInfo(string url)
@@ -252,36 +299,9 @@ namespace NI
             }
         }
 
-        protected IEnumerator LoadTestAssetBundleFromFile()
+        protected IEnumerator LoadNativeVersionFromAssetsBundle()
         {
-            var url = CommonFunction.getStreamingAssetsPath("ui/image/pck_ui_lobby_main_1");
-            LoggerManager.Instance().LogFormat("native url = {0}", url);
-            UnityWebRequest www = UnityWebRequest.Get(url);
-            DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
-            www.downloadHandler = handler;
-            yield return www.Send();
-
-            if (www.isError)
-            {
-                Debug.LogErrorFormat(www.error);
-            }
-            else
-            {
-                AssetBundle bundle = handler.assetBundle;
-                if(null == bundle)
-                {
-                    Debug.LogErrorFormat("load test bundle failed ...");
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Load assetbundle succeed ... for test asset bundle ...");
-                }
-            }
-        }
-
-        protected IEnumerator LoadNativeVersionFromStreamingAssetsBundle()
-        {
-            var url = CommonFunction.getStreamingAssetsPath(mNativeBaseConfigUrl);
+            var url = CommonFunction.getAssetBundleSavePath(mBundleName);
             LoggerManager.Instance().LogFormat("native url = {0}", url);
             UnityWebRequest www = UnityWebRequest.Get(url);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
@@ -312,7 +332,7 @@ namespace NI
 
         protected IEnumerator LoadNativeVersionInfo()
         {
-            yield return LoadNativeVersionFromStreamingAssetsBundle();
+            yield return LoadNativeVersionFromAssetsBundle();
 
             if (null == mNativeVersionItem)
             {

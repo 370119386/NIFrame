@@ -39,8 +39,6 @@ namespace NI
         protected Dictionary<int, ResourceInfoTable> mRemoteResourcesInfoTable = new Dictionary<int, ResourceInfoTable>();
         protected Dictionary<int, AssetInstance> mAlivedObjects = new Dictionary<int, AssetInstance>();
 
-        protected Dictionary<string, AssetBundle> mAlivedBundles = new Dictionary<string, AssetBundle>();
-
         public void Initialize(object argv)
         {
             var data = argv as AssetLoaderData;
@@ -239,24 +237,11 @@ namespace NI
         {
             if(resInfoItem.Path.Count > 1)
             {
-                AssetBundle assetBundle = null;
-                var bundlePath = CommonFunction.getStreamingAssetsPath(resInfoItem.Path[0]);
-                if (!mAlivedBundles.ContainsKey(bundlePath))
-                {
-                    assetBundle = AssetBundle.LoadFromFile(bundlePath);
-                    if (null != assetBundle)
-                    {
-                        mAlivedBundles.Add(bundlePath,assetBundle);
-                    }
-                }
-                else
-                {
-                    assetBundle = mAlivedBundles[bundlePath];
-                }
+                AssetBundle assetBundle = AssetBundleManager.Instance().getAssetBundle(resInfoItem.Path[0]);
 
                 if(null == assetBundle)
                 {
-                    LoggerManager.Instance().LogProcessFormat("Load assetbundle failed name = {0} ...", resInfoItem.Path[0]);
+                    LoggerManager.Instance().LogProcessFormat("get assetbundle failed name = {0} ...", resInfoItem.Path[0]);
                     return default(T);
                 }
 

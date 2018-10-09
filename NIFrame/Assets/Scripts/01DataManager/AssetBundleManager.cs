@@ -7,14 +7,36 @@ using UnityEngine.Events;
 
 namespace NI
 {
+    public enum BundleStatus
+    {
+        BS_INVALID = -1,
+        BS_DOWNLOADING,
+        BS_EXISTED,
+    }
+
+    public class BundleInfo
+    {
+        public AssetBundle bundle;
+    }
+
     public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         protected GameFrameWork gameHandle;
         protected AssetBundleManifest mBundleManifest;
+        protected Dictionary<string, BundleInfo> mLoadedBundles = new Dictionary<string, BundleInfo>();
 
         public void Initialize(object argv)
         {
             gameHandle = argv as GameFrameWork;
+        }
+
+        public AssetBundle getAssetBundle(string bundleName)
+        {
+            if(mLoadedBundles.ContainsKey(bundleName))
+            {
+                return mLoadedBundles[bundleName].bundle;
+            }
+            return null;
         }
 
         protected string getVersionUrl(VersionConfigTable version)
@@ -39,16 +61,31 @@ namespace NI
             return manifest;
         }
 
-        IEnumerator DownLoadAssetBundle(string url,UnityEngine.Events.UnityAction<AssetBundle> cb)
+        public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
+            if (mLoadedBundles.ContainsKey(bundleName))
+            {
+                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle {0} Failed , this bundle has already loaded ...", bundleName);
+                if (null != onSucceed)
+                {
+                    onSucceed.Invoke();
+                }
+                yield break;
+            }
+
+            var bundleUrl = CommonFunction.getAssetBundleSavePath(bundleName);
+            UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
             www.downloadHandler = handler;
             yield return www.Send();
 
             if (www.isError)
             {
-                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed:{0} url={1}",www.error,url);
+                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed:{0} url={1}",www.error, bundleUrl);
+                if(null != onFailed)
+                {
+                    onFailed.Invoke();
+                }
             }
             else
             {
@@ -59,9 +96,14 @@ namespace NI
                     yield break;
                 }
 
-                if (null != cb)
+                mLoadedBundles.Add(bundleName, new BundleInfo
                 {
-                    cb.Invoke(bundle);
+                    bundle = bundle,
+                });
+
+                if (null != onSucceed)
+                {
+                    onSucceed.Invoke();
                 }
             }
         }
@@ -117,6 +159,81 @@ namespace NI
                 {
                     onFailed.Invoke();
                 }
+            }
+        }
+
+        protected void DeleteFile(string path)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+                {
+                    LoggerManager.Instance().LogProcessFormat("Delete file Path = {0}", path);
+                    System.IO.File.Delete(path);
+                    LoggerManager.Instance().LogProcessFormat("Delete {0} Succeed",path);
+                }
+            }
+            catch (System.Exception e)
+            {
+                LoggerManager.Instance().LogErrorFormat("Delete file Path = {0} Failed:Error={1}", path, e.Message);
+            }
+        }
+
+        public IEnumerator CheckVersionFileMD5(ProtoTable.VersionConfigTable version, UnityAction onSucceed, UnityAction onFailed)
+        {
+            if (null == version)
+            {
+                LoggerManager.Instance().LogErrorFormat("CheckFileMD5 Failed version is null ...");
+                if (null != onFailed)
+                {
+                    onFailed.Invoke();
+                }
+                yield break;
+            }
+
+            var versionUrl = getVersionUrl(version);
+            var platformBundle = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString());
+            if(true)
+            {
+                var platformMd5 = CommonFunction.GetMD5HashFromFile(platformBundle);
+                if(string.IsNullOrEmpty(platformMd5))
+                {
+                    if (null != onFailed)
+                    {
+                        onFailed.Invoke();
+                    }
+                    LoggerManager.Instance().LogErrorFormat("CheckMD5 Failed For {0} platformBundle ...", platformBundle);
+                    DeleteFile(platformBundle);
+                    yield break;
+                }
+
+                LoggerManager.Instance().LogProcessFormat("[Succeed:] CheckMD5 Succeed For {0} platformBundle ...<color=#00ff00>{1}</color>", platformBundle,platformMd5);
+                yield return null;
+            }
+
+            for (int i = 0; i < version.BaseAssetBundles.Count; ++i)
+            {
+                var bundleName = version.BaseAssetBundles[i];
+                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName);
+                var fileMd5 = CommonFunction.GetMD5HashFromFile(bundlePath);
+                if (string.IsNullOrEmpty(fileMd5))
+                {
+                    if (null != onFailed)
+                    {
+                        onFailed.Invoke();
+                    }
+                    LoggerManager.Instance().LogErrorFormat("CheckMD5 Failed For {0} generalBundle ...", bundlePath);
+                    DeleteFile(platformBundle);
+                    yield break;
+                }
+
+                LoggerManager.Instance().LogProcessFormat("[Succeed]: CheckMD5 Succeed For {0} generalBundle ...<color=#00ff00>{1}</color>", bundlePath,fileMd5);
+                yield return null;
+            }
+
+            if (null != onSucceed)
+            {
+                onSucceed.Invoke();
             }
         }
 

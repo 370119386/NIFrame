@@ -147,7 +147,7 @@ namespace NI
             mTables.Add(type, table);
 
             var deltaTime = System.DateTime.Now.Ticks - beginTime;
-            Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
+            //Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
         }
 
         public void LoadTableFromMemory<T>(byte[] datas) where T : class, global::ProtoBuf.IExtensible, global::ProtoBuf.IParseable, new()
@@ -199,7 +199,7 @@ namespace NI
             }
 
             var deltaTime = System.DateTime.Now.Ticks - beginTime;
-            Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
+            //Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
 
             return table;
         }
@@ -221,7 +221,7 @@ namespace NI
                 var table = convertTableObject(res, type) as Dictionary<int, object>;
 
                 var deltaTime = System.DateTime.Now.Ticks - beginTime;
-                Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
+                //Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
 
                 return table;
             }
@@ -255,7 +255,7 @@ namespace NI
                 mTables.Add(type, table);
 
                 var deltaTime = System.DateTime.Now.Ticks - beginTime;
-                Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
+                //Debug.LogErrorFormat("load {0} cost <color=#00ff00>{1}</color> ms!", type.Name, deltaTime / 10000);
             }
         }
 
