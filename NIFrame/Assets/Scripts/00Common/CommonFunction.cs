@@ -56,9 +56,20 @@ public static class CommonFunction
         return string.Empty;
     }
 
-    public static string getAssetBundleSavePath(string bundleName)
+    public static string getAssetBundleSavePath(string bundleName,bool needfile)
     {
+#if UNITY_IOS
+        if (needfile)
+        {
+            return "file://" + Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+        }
+        else
+        {
+            return Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+        }
+#else
         return Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+#endif
     }
 
     public static string getStreamingAssetsPath(string path)

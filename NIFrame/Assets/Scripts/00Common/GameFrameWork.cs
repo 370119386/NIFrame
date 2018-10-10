@@ -301,7 +301,7 @@ namespace NI
 
         protected IEnumerator LoadNativeVersionFromAssetsBundle()
         {
-            var url = CommonFunction.getAssetBundleSavePath(mBundleName);
+            var url = CommonFunction.getAssetBundleSavePath(mBundleName,true);
             LoggerManager.Instance().LogFormat("native url = {0}", url);
             UnityWebRequest www = UnityWebRequest.Get(url);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);

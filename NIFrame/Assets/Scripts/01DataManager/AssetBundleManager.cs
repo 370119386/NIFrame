@@ -73,7 +73,7 @@ namespace NI
                 yield break;
             }
 
-            var bundleUrl = CommonFunction.getAssetBundleSavePath(bundleName);
+            var bundleUrl = CommonFunction.getAssetBundleSavePath(bundleName,true);
             UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
             www.downloadHandler = handler;
@@ -153,8 +153,8 @@ namespace NI
             }
             catch (System.Exception e)
             {
-                LoggerManager.Instance().LogProcessFormat("TrySave {0} To {1} Failed ...", bundleName, path);
-                LoggerManager.Instance().LogProcessFormat(e.ToString());
+                LoggerManager.Instance().LogErrorFormat("TrySave {0} To {1} Failed ...", bundleName, path);
+                LoggerManager.Instance().LogErrorFormat(e.ToString());
                 if(null != onFailed)
                 {
                     onFailed.Invoke();
@@ -192,7 +192,7 @@ namespace NI
             }
 
             var versionUrl = getVersionUrl(version);
-            var platformBundle = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString());
+            var platformBundle = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString(),false);
             if(true)
             {
                 var platformMd5 = CommonFunction.GetMD5HashFromFile(platformBundle);
@@ -214,7 +214,7 @@ namespace NI
             for (int i = 0; i < version.BaseAssetBundles.Count; ++i)
             {
                 var bundleName = version.BaseAssetBundles[i];
-                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName);
+                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName,false);
                 var fileMd5 = CommonFunction.GetMD5HashFromFile(bundlePath);
                 if (string.IsNullOrEmpty(fileMd5))
                 {
@@ -257,7 +257,7 @@ namespace NI
             yield return DownLoadAssetBundleByBuffer(url, (byte[] datas) =>
             {
                 LoggerManager.Instance().LogProcessFormat("DownLoad DownLoadAssetBundleByBuffer Succeed ... For DataLength = {0}", datas.Length);
-                var savePath = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString());
+                var savePath = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString(),false);
                 SaveFile(savePath, datas,()=>
                 {
                     succeed = false;
@@ -284,9 +284,10 @@ namespace NI
             {
                 var bundleName = version.BaseAssetBundles[i];
                 var assetBundleUrl = string.Format("{0}{1}", versionUrl, version.BaseAssetBundles[i]);
-                var savePath = CommonFunction.getAssetBundleSavePath(bundleName);
+
                 yield return DownLoadAssetBundleByBuffer(assetBundleUrl, (byte[] datas) =>
                 {
+                    var savePath = CommonFunction.getAssetBundleSavePath(bundleName, false);
                     SaveFile(savePath, datas, () => { succeed = false; });
                 },
                 ()=> 
