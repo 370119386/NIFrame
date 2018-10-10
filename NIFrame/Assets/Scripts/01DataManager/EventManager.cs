@@ -30,6 +30,11 @@ namespace NI
             }
         }
 
+        public void ClearAllEvents()
+        {
+            mEventDispatcher.Clear();
+        }
+
         public void SendEvent(Event eEvent,object argv = null)
         {
             if(mEventDispatcher.ContainsKey(eEvent))

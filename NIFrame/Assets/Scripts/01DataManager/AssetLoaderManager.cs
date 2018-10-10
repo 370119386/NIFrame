@@ -9,9 +9,7 @@ namespace NI
     public class AssetLoaderData
     {
         public GameFrameWork frameHandle;
-        public string BaseConfigUrl;
         public Dictionary<int, object> localResourcesInfoTable;
-        public Dictionary<int, object> remoteResourcesInfoTable;
     }
 
     public enum AssetType
@@ -33,17 +31,14 @@ namespace NI
     public class AssetLoaderManager : Singleton<AssetLoaderManager>
     {
         protected GameFrameWork frameHandle = null;
-        protected string VersionUrl = string.Empty;
 
         protected Dictionary<int, ResourceInfoTable> mLocalResourcesInfoTable = new Dictionary<int, ResourceInfoTable>();
-        protected Dictionary<int, ResourceInfoTable> mRemoteResourcesInfoTable = new Dictionary<int, ResourceInfoTable>();
         protected Dictionary<int, AssetInstance> mAlivedObjects = new Dictionary<int, AssetInstance>();
 
-        public void Initialize(object argv)
+        public bool Initialize(object argv)
         {
             var data = argv as AssetLoaderData;
             frameHandle = data.frameHandle;
-            VersionUrl = data.BaseConfigUrl;
             mLocalResourcesInfoTable.Clear();
             if(null != data.localResourcesInfoTable)
             {
@@ -76,46 +71,11 @@ namespace NI
                 }
             }
 
-            mRemoteResourcesInfoTable.Clear();
-            if(null != data.remoteResourcesInfoTable)
-            {
-                var iter = data.remoteResourcesInfoTable.GetEnumerator();
-                while (iter.MoveNext())
-                {
-                    var resItem = iter.Current.Value as ResourceInfoTable;
-                    if (null != resItem)
-                    {
-                        int iHashCode = 0;
-                        if (!string.IsNullOrEmpty(resItem.PathHashKey))
-                        {
-                            iHashCode = resItem.PathHashKey.GetHashCode();
-                        }
-
-                        if (0 != iHashCode)
-                        {
-                            if (!mRemoteResourcesInfoTable.ContainsKey(iHashCode))
-                            {
-                                mRemoteResourcesInfoTable.Add(iHashCode, resItem);
-                            }
-                            else
-                            {
-                                var orgItem = mRemoteResourcesInfoTable[iHashCode];
-                                mRemoteResourcesInfoTable[iHashCode] = resItem;
-                                LoggerManager.Instance().LogErrorFormat("mRemoteResourcesInfoTable hash key repeated for id = {0} and id = {1}", orgItem.ID, resItem.ID);
-                            }
-                        }
-                    }
-                }
-            }
+            return mLocalResourcesInfoTable.Count > 0;
         }
 
         protected ResourceInfoTable getResourceInfo(int iHashCode)
         {
-            if(mRemoteResourcesInfoTable.ContainsKey(iHashCode))
-            {
-                return mRemoteResourcesInfoTable[iHashCode];
-            }
-
             if(mLocalResourcesInfoTable.ContainsKey(iHashCode))
             {
                 return mLocalResourcesInfoTable[iHashCode];

@@ -73,7 +73,7 @@ namespace NI
                     return;
                 }
 
-                //gameObject = AssetBundleManager.LoadAsset<GameObject>((Consts.UGame)moduleId, frameItem.Prefab);
+                gameObject = AssetLoaderManager.Instance().LoadResources<GameObject>(frameItem.Prefab, AssetType.AT_PREFAB);
             }
 
             if (null == gameObject)

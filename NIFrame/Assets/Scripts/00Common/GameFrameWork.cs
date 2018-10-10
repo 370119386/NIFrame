@@ -18,20 +18,16 @@ namespace NI
             return mBaseConfigUrl + CommonFunction.getPlatformString() + "/" + mBundleName;
         }
 
+        void Awake()
+        {
+            SceneManager.Create();
+        }
+
         // Use this for initialization
         void Start()
         {
             SystemManager.Instance().Initialize(this);
             UIManager.Instance().Initialize(mLayers);
-
-            AssetLoaderManager.Instance().Initialize(new AssetLoaderData
-            {
-                frameHandle = this,
-                BaseConfigUrl = mBaseConfigUrl,
-                localResourcesInfoTable = TableManager.Instance().ReadTableFromResourcesFile<ResourceInfoTable>(@"Data/Table"),
-                remoteResourcesInfoTable = null,
-            });
-
             GameObject.DontDestroyOnLoad(this);
 
             StartCoroutine(CheckVersion());
@@ -259,9 +255,20 @@ namespace NI
                     LoggerManager.Instance().LogProcessFormat("[Succeed]:加载 [{0}] general assetbundle succeed", bundleName);
                 }
             }
-            yield return null;
 
             LoggerManager.Instance().LogProcessFormat("[Succeed]:开始进入游戏 ... 版本号 = [{0}]", version.Desc);
+
+            if(!AssetLoaderManager.Instance().Initialize(new AssetLoaderData
+            {
+                frameHandle = this,
+                localResourcesInfoTable = TableManager.Instance().ReadTableFromAssetBundle<ResourceInfoTable>(AssetBundleManager.Instance().getAssetBundle(mBundleName)),
+            }))
+            {
+                LoggerManager.Instance().LogErrorFormat("AssetLoaderManager Initialize Failed ...");
+                yield break;
+            }
+
+            LoggerManager.Instance().LogProcessFormat("[Succeed]:AssetLoaderManager Initialize Succeed ...");
         }
 
         protected IEnumerator LoadRemoteVersionInfo(string url)

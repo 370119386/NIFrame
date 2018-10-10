@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GG
+namespace NI
 {
     public interface IScene
     {
-        bool Create(int iId,ISceneLoader sceneLoader);
+        bool Create(int iId);
         void Enter();
         void Exit();
         int ID();
