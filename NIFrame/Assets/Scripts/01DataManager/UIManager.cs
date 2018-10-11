@@ -152,6 +152,8 @@ namespace NI
 
         public void CloseAllFrames()
         {
+            LoggerManager.Instance().LogProcessFormat("CloseAllFrames ...");
+
             var iter = mKey2Frames.GetEnumerator();
             while (iter.MoveNext())
             {

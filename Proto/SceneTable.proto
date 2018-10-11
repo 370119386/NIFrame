@@ -1,0 +1,7 @@
+package ProtoTable;
+message SceneTable
+{
+required sint32 ID = 1;
+required string Name = 2;
+repeated string AssetBundles = 3;
+};

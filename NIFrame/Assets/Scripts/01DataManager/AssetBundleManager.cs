@@ -61,9 +61,29 @@ namespace NI
             return manifest;
         }
 
+        public bool IsBundleExist(string bundleName)
+        {
+            if(!mLoadedBundles.ContainsKey(bundleName))
+            {
+                return false;
+            }
+
+            if(null == mLoadedBundles[bundleName])
+            {
+                return false;
+            }
+
+            if(null == mLoadedBundles[bundleName].bundle)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed)
         {
-            if (mLoadedBundles.ContainsKey(bundleName))
+            if (IsBundleExist(bundleName))
             {
                 LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle {0} Failed , this bundle has already loaded ...", bundleName);
                 if (null != onSucceed)
@@ -96,14 +116,40 @@ namespace NI
                     yield break;
                 }
 
-                mLoadedBundles.Add(bundleName, new BundleInfo
+                if(!mLoadedBundles.ContainsKey(bundleName))
                 {
-                    bundle = bundle,
-                });
+                    mLoadedBundles.Add(bundleName, new BundleInfo
+                    {
+                        bundle = bundle,
+                    });
+                }
+                else
+                {
+                    if(null == mLoadedBundles[bundleName])
+                    {
+                        mLoadedBundles[bundleName] = new BundleInfo { bundle = bundle };
+                    }
+                    else
+                    {
+                        mLoadedBundles[bundleName].bundle = bundle;
+                    }
+                }
 
                 if (null != onSucceed)
                 {
                     onSucceed.Invoke();
+                }
+            }
+        }
+        public void UnLoadAssetBundle(string bundleName)
+        {
+            if (mLoadedBundles.ContainsKey(bundleName))
+            {
+                var bundleInfo = mLoadedBundles[bundleName];
+                if(null != bundleInfo && null != bundleInfo.bundle)
+                {
+                    bundleInfo.bundle.Unload(true);
+                    bundleInfo.bundle = null;
                 }
             }
         }

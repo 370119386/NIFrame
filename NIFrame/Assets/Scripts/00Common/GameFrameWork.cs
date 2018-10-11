@@ -28,6 +28,8 @@ namespace NI
         {
             SystemManager.Instance().Initialize(this);
             UIManager.Instance().Initialize(mLayers);
+            TableManager.Instance().Initialize(@"Data/Table/");
+
             GameObject.DontDestroyOnLoad(this);
 
             StartCoroutine(CheckVersion());
@@ -269,6 +271,9 @@ namespace NI
             }
 
             LoggerManager.Instance().LogProcessFormat("[Succeed]:AssetLoaderManager Initialize Succeed ...");
+            TableManager.Instance().LoadTable<SceneTable>();
+
+            SceneManager.Instance().SwitchScene(1);
         }
 
         protected IEnumerator LoadRemoteVersionInfo(string url)

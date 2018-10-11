@@ -6,7 +6,7 @@ namespace NI
 {
     public interface IScene
     {
-        bool Create(int iId);
+        bool Create(object argv);
         void Enter();
         void Exit();
         int ID();

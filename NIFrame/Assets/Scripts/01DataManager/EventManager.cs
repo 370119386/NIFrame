@@ -30,8 +30,9 @@ namespace NI
             }
         }
 
-        public void ClearAllEvents()
+        public void Clear()
         {
+            LoggerManager.Instance().LogProcessFormat("ClearAllEvents ...");
             mEventDispatcher.Clear();
         }
 

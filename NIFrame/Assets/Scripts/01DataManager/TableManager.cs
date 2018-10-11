@@ -131,7 +131,7 @@ namespace NI
 
             AssetBinary res = null;
 
-            //res = AssetBundleManager.LoadAsset<AssetBinary>(Consts.UGame.CommonSharedRes, path);
+            res = AssetLoaderManager.Instance().LoadResources<AssetBinary>(path, AssetType.AT_ASSETS);
 
             if (null == res)
             {

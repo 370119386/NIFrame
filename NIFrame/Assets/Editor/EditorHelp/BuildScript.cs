@@ -127,4 +127,39 @@ public class BuildScript
     {
         BuildAssetBundles();
     }
+
+    [MenuItem("AssetBundles/DeleteLocalAssetBundles")]
+    static public void DeleteLocalAssetBundles()
+    {
+        var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false);
+        if(Directory.Exists(Dir))
+        {
+            DelectDir(Dir);
+        }
+    }
+
+    public static void DelectDir(string srcPath)
+    {
+        try
+        {
+            DirectoryInfo dir = new DirectoryInfo(srcPath);
+            FileSystemInfo[] fileinfo = dir.GetFileSystemInfos();
+            foreach (FileSystemInfo i in fileinfo)
+            {
+                if (i is DirectoryInfo)
+                {
+                    DirectoryInfo subdir = new DirectoryInfo(i.FullName);
+                    subdir.Delete(true);
+                }
+                else
+                {
+                    File.Delete(i.FullName);
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            throw;
+        }
+    }
 }

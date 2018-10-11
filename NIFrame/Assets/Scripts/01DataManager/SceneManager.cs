@@ -14,6 +14,14 @@ namespace NI
         public OnBeginLoading begin;
         public OnEndLoading end;
         public IEnumerator loadingTask;
+
+        public void Clear()
+        {
+            argv = null;
+            begin = null;
+            end = null;
+            loadingTask = null;
+        }
     }
 
     public class SceneManager : MonoBehaviour
@@ -61,11 +69,15 @@ namespace NI
                 param.begin = null;
             }
 
-            System.GC.Collect();
-
             _current = Create(iId);
 
-            if(null == _current || !_current.Create(iId))
+            object argv = null;
+            if(null != _param)
+            {
+                argv = _param.argv;
+            }
+
+            if(null == _current || !_current.Create(argv))
             {
                 LoggerManager.Instance().LogErrorFormat("Create Scene Failed For Id = {0}", iId);
                 return;
@@ -76,12 +88,30 @@ namespace NI
 
         protected Scene Create(int iId)
         {
-            return new Scene();
+            var sceneItem = TableManager.Instance().GetTableItem<ProtoTable.SceneTable>(iId);
+            if(null != sceneItem)
+            {
+                return new Scene(sceneItem);
+            }
+
+            return null;
         }
 
         protected IEnumerator AnsySwitchScene()
         {
-            if(null != _param && null != _param.loadingTask)
+            var ansyOperation = Resources.UnloadUnusedAssets();
+            while(!ansyOperation.isDone)
+            {
+                yield return null;
+            }
+
+            System.GC.Collect();
+
+#if UNITY_TEST_ALIVED_OBJECT
+            AssetLoaderManager.Instance().ReportAlivedObject();
+#endif
+
+            if (null != _param && null != _param.loadingTask)
             {
                 yield return _param.loadingTask;
             }
@@ -93,9 +123,15 @@ namespace NI
 
             _current.Enter();
 
-            if (null != _param.end)
+            if (null != _param && null != _param.end)
             {
                 _param.end.Invoke();
+            }
+
+            if(null != _param)
+            {
+                _param.Clear();
+                _param = null;
             }
         }
     }

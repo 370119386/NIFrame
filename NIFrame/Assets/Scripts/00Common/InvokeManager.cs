@@ -40,7 +40,9 @@ namespace NI
 
         public void Clear(bool bGlobal = false)
         {
-            if(bGlobal)
+            LoggerManager.Instance().LogProcessFormat("Clear All Invokes ... bGlobal = {0}", bGlobal);
+
+            if (bGlobal)
             {
                 for (int i = 0; i < m_actives.Count; ++i)
                 {

@@ -321,5 +321,18 @@ namespace NI
 
             return default(T);
         }
+
+        public void ReportAlivedObject()
+        {
+            var iter = mAlivedObjects.GetEnumerator();
+            while(iter.MoveNext())
+            {
+                var assetInst = iter.Current.Value;
+                if(null != assetInst && assetInst.objectRef.IsAlive)
+                {
+                    LoggerManager.Instance().LogFormat("[alivedRes]:<color=#00ff00>[Path={0}][LoadType={1}]</color>", assetInst.resInfo.Path, assetInst.resInfo.LoadType);
+                }
+            }
+        }
     }
 }
