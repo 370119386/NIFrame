@@ -121,7 +121,7 @@ public static class CommonFunction
         }
         catch (System.Exception ex)
         {
-            LoggerManager.Instance().LogErrorFormat("GetMD5HashFromFile() fail,error:" + ex.Message);
+            LoggerManager.Instance().LogErrorFormat("GetMD5HashFromFile fail,error:" + ex.Message);
             return string.Empty;
         }
     }

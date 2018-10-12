@@ -128,18 +128,42 @@ public class BuildScript
         BuildAssetBundles();
     }
 
+    [MenuItem("AssetBundles/BuildStreamingAssetBundles")]
+    static public void BuildStreamingAssetBundles()
+    {
+        string outputPath = Application.dataPath + "/StreamingAssets/AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget);
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        BuildPipeline.BuildAssetBundles(outputPath, 0, EditorUserBuildSettings.activeBuildTarget);
+
+        AssetDatabase.Refresh();
+    }
+
     [MenuItem("AssetBundles/DeleteLocalAssetBundles")]
     static public void DeleteLocalAssetBundles()
     {
-        var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false);
-        if(Directory.Exists(Dir))
-        {
-            DelectDir(Dir);
-        }
+        var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false,false);
+        DelectDir(Dir);
+    }
+
+    [MenuItem("AssetBundles/DeleteStreamingAssetBundles")]
+    static public void DeleteStreamingAssetBundles()
+    {
+        var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false, true);
+        DelectDir(Dir);
+        AssetDatabase.Refresh();
     }
 
     public static void DelectDir(string srcPath)
     {
+        if (!Directory.Exists(srcPath))
+        {
+            return;
+        }
+
         try
         {
             DirectoryInfo dir = new DirectoryInfo(srcPath);
