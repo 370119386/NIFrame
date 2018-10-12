@@ -81,7 +81,7 @@ namespace NI
             return true;
         }
 
-        public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed)
+        public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed,bool bLoadAssetBundleFromStreamingAssets = false)
         {
             if (IsBundleExist(bundleName))
             {
@@ -93,7 +93,7 @@ namespace NI
                 yield break;
             }
 
-            var bundleUrl = CommonFunction.getAssetBundleSavePath(bundleName,true);
+            var bundleUrl = CommonFunction.getAssetBundleSavePath(bundleName,true, bLoadAssetBundleFromStreamingAssets);
             UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
             DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
             www.downloadHandler = handler;
@@ -141,6 +141,7 @@ namespace NI
                 }
             }
         }
+
         public void UnLoadAssetBundle(string bundleName)
         {
             if (mLoadedBundles.ContainsKey(bundleName))
@@ -225,7 +226,7 @@ namespace NI
             }
         }
 
-        public IEnumerator CheckVersionFileMD5(ProtoTable.VersionConfigTable version, UnityAction onSucceed, UnityAction onFailed)
+        public IEnumerator CheckVersionFileMD5(ProtoTable.VersionConfigTable version, UnityAction onSucceed, UnityAction onFailed,bool fromStreamingAssets = false)
         {
             if (null == version)
             {
@@ -238,7 +239,7 @@ namespace NI
             }
 
             var versionUrl = getVersionUrl(version);
-            var platformBundle = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString(),false);
+            var platformBundle = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString(),false, fromStreamingAssets);
             if(true)
             {
                 var platformMd5 = CommonFunction.GetMD5HashFromFile(platformBundle);
@@ -260,7 +261,7 @@ namespace NI
             for (int i = 0; i < version.BaseAssetBundles.Count; ++i)
             {
                 var bundleName = version.BaseAssetBundles[i];
-                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName,false);
+                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName,false, fromStreamingAssets);
                 var fileMd5 = CommonFunction.GetMD5HashFromFile(bundlePath);
                 if (string.IsNullOrEmpty(fileMd5))
                 {

@@ -52,25 +52,44 @@ public static class CommonFunction
         return "iOS";
 #elif UNITY_ANDROID
         return "Android";
-#endif
+#else
         return string.Empty;
+#endif
     }
 
-    public static string getAssetBundleSavePath(string bundleName,bool useWWW)
+    public static string getAssetBundleSavePath(string bundleName,bool useWWW,bool fromStreamingAssets = false)
     {
-        if(useWWW)
+        if (fromStreamingAssets)
+        {
+            if (useWWW)
+            {
+#if UNITY_IOS
+                return "file://" + Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
+#elif UNITY_ANDROID
+                return "file://" + Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
+#else
+                return Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
+#endif
+            }
+            else
+            {
+                return Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
+            }
+        }
+
+        if (useWWW)
         {
 #if UNITY_IOS
-            return "file://" + Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+            return "file://" + Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #elif UNITY_ANDROID
-            return "file://" + Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+            return "file://" + Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #else
-            return Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+            return Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #endif
         }
         else
         {
-            return Application.persistentDataPath + "/Temp/AssetBundles/" + bundleName;
+            return Application.persistentDataPath + "/AssetBundles/" + bundleName;
         }
     }
 

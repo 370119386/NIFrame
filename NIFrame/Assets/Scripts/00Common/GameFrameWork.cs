@@ -89,7 +89,7 @@ namespace NI
             if (mNativeVersionItem.ID < mRemoteVersionItem.ID)
             {
                 bool needUpdateAll = false;
-                for(int i = mNativeVersionItem.ID; i < mRemoteVersionItem.ID; ++i)
+                for(int i = mNativeVersionItem.ID + 1; i <= mRemoteVersionItem.ID; ++i)
                 {
                     int iId = i;
                     if(!mRemoteVersionTable.ContainsKey(iId))
@@ -148,7 +148,7 @@ namespace NI
 
                 LoggerManager.Instance().LogProcessFormat("[Succeed]:校验文件MD5成功 ...");
 
-                yield return StartGame(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable);
+                yield return StartGame(mRemoteVersionTable[mRemoteVersionItem.ID] as VersionConfigTable,false);
             }
             else
             {
@@ -157,7 +157,7 @@ namespace NI
                 yield return AssetBundleManager.Instance().CheckVersionFileMD5(mNativeVersionTable[mNativeVersionItem.ID] as VersionConfigTable, null, () =>
                 {
                     mGameStartErrorCode = GameStartErrorCode.CSEC_CHECK_VERSION_MD5_FAILED;
-                });
+                },0 != mNativeVersionItem.NeedUpdateAll);
 
                 if (mGameStartErrorCode != GameStartErrorCode.GSEC_SUCCEED)
                 {
@@ -168,7 +168,7 @@ namespace NI
 
                 LoggerManager.Instance().LogProcessFormat("[Succeed]:校验文件MD5成功 ...");
 
-                yield return StartGame(mNativeVersionTable[mNativeVersionItem.ID] as VersionConfigTable);
+                yield return StartGame(mNativeVersionTable[mNativeVersionItem.ID] as VersionConfigTable,0 != mNativeVersionItem.NeedUpdateAll);
             }
         }
 
@@ -222,7 +222,7 @@ namespace NI
             }
         }
 
-        protected IEnumerator StartGame(VersionConfigTable version)
+        protected IEnumerator StartGame(VersionConfigTable version,bool bLoadAssetBundleFromStreamingAssets)
         {
             LoggerManager.Instance().LogProcessFormat("[Succeed]:开始加载游戏[BaseAssetBundles] ... 版本号 = [{0}]",version.Desc);
 
@@ -232,7 +232,7 @@ namespace NI
             {
                 LoggerManager.Instance().LogErrorFormat("[Failed]:加载 [{0}] platform assetbundle failed", platformBundleName);
                 succeed = false;
-            });
+            }, bLoadAssetBundleFromStreamingAssets);
 
             if(!succeed)
             {
@@ -249,7 +249,7 @@ namespace NI
                     {
                         LoggerManager.Instance().LogErrorFormat("[Failed]:加载 [{0}] general assetbundle failed", bundleName);
                         succeed = false;
-                    });
+                    }, bLoadAssetBundleFromStreamingAssets);
                     if(!succeed)
                     {
                         yield break;
