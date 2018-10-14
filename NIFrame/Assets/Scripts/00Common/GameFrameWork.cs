@@ -187,15 +187,32 @@ namespace NI
         IEnumerator LoadGameBaseModule()
         {
             bool succeed = true;
-            yield return AssetBundleManager.Instance().LoadAssetBundleFromPkg(mBundleName,null, 
-            ()=>
+
+            if (AssetLoaderManager.Instance().HasSmallUpdate)
             {
-                succeed = false;
-            });
-            if(!succeed)
+                yield return AssetBundleManager.Instance().LoadAssetBundleFromPkg(mBundleName, null,
+                () =>
+                {
+                    succeed = false;
+                });
+                if (!succeed)
+                {
+                    LoggerManager.Instance().LogErrorFormat("Load BaseBundle {0} From Pkg Failed ...", mBundleName);
+                    yield break;
+                }
+            }
+            else
             {
-                LoggerManager.Instance().LogErrorFormat("load BaseBundle {0} Failed ...", mBundleName);
-                yield break;
+                yield return AssetBundleManager.Instance().LoadAssetBundle(mBundleName, null,
+                () =>
+                {
+                    succeed = false;
+                },true);
+                if (!succeed)
+                {
+                    LoggerManager.Instance().LogErrorFormat("Load BaseBundle {0} From StreamingAssets Failed ...", mBundleName);
+                    yield break;
+                }
             }
 
             TableManager.Instance().LoadTableFromAssetBundle<ProtoTable.ModuleTable>(AssetBundleManager.Instance().getAssetBundle(mBundleName));
@@ -224,6 +241,15 @@ namespace NI
                 LoggerManager.Instance().LogErrorFormat("加载游戏资源表失败...");
                 yield break;
             }
+
+            TableManager.Instance().LoadTableFromAssetBundle<ProtoTable.FrameTypeTable>(AssetBundleManager.Instance().getAssetBundle(mBundleName));
+            var frameTypeTable = TableManager.Instance().GetTable<ProtoTable.FrameTypeTable>();
+            if (null == frameTypeTable)
+            {
+                LoggerManager.Instance().LogErrorFormat("加载界面表失败...");
+                yield break;
+            }
+
             var resourceInfoTable = AssetLoaderManager.Instance().Initialize(new AssetLoaderData
             {
                 frameHandle = this,

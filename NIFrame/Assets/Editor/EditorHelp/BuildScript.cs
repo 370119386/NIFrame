@@ -295,20 +295,21 @@ public class BuildScript
             {
                 for(int j = 0; j < moduleItem.RequiredBundles.Count; ++j)
                 {
-                    var targetPath = System.IO.Path.GetFullPath(dstBundlePath + moduleItem.RequiredBundles[i]);
+                    var targetPath = System.IO.Path.GetFullPath(dstBundlePath + moduleItem.RequiredBundles[j]);
                     targetPath = Path.GetDirectoryName(targetPath);
                     if(!Directory.Exists(targetPath))
                     {
                         Directory.CreateDirectory(targetPath);
                     }
-                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[i], dstBundlePath + moduleItem.RequiredBundles[i]);
-                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[i] + ".manifest", dstBundlePath + moduleItem.RequiredBundles[i] + ".manifest");
-                    Debug.LogFormat("<color=#00ff00>copy {0} succeed ...</color>", moduleItem.RequiredBundles[i]);
+                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[j], dstBundlePath + moduleItem.RequiredBundles[j]);
+                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[j] + ".manifest", dstBundlePath + moduleItem.RequiredBundles[j] + ".manifest");
+                    Debug.LogFormat("<color=#00ff00>copy {0} succeed ...</color>", moduleItem.RequiredBundles[j]);
                 }
             }
             catch (System.Exception e)
             {
                 Debug.LogErrorFormat("复制AssetBundles To StreamingAssets 文件夹失败...");
+                Debug.LogErrorFormat("Error:{0}", e.Message);
                 return;
             }
         }
