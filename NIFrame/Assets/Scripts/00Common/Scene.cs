@@ -55,7 +55,7 @@ namespace NI
                     AddTask(AssetBundleManager.Instance().LoadAssetBundle(bundleName,null,()=>
                     {
                         LoggerManager.Instance().LogErrorFormat("LoadAssetBundleFailed Name = {0} SceneName = {1}", bundleName, sceneItem.Name);
-                    }));
+                    },false));
                 }
             }
 

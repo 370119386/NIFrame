@@ -22,12 +22,14 @@ namespace NI
     public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         protected GameFrameWork gameHandle;
+        protected string baseUrl = string.Empty;
         protected AssetBundleManifest mBundleManifest;
         protected Dictionary<string, BundleInfo> mLoadedBundles = new Dictionary<string, BundleInfo>();
 
-        public void Initialize(object argv)
+        public void Initialize(object argv,string baseUrl)
         {
             gameHandle = argv as GameFrameWork;
+            this.baseUrl = baseUrl;
         }
 
         public AssetBundle getAssetBundle(string bundleName)
@@ -37,28 +39,6 @@ namespace NI
                 return mLoadedBundles[bundleName].bundle;
             }
             return null;
-        }
-
-        protected string getVersionUrl(VersionConfigTable version)
-        {
-            string url = string.Empty;
-#if UNITY_IOS
-            url = version.IosUrl;
-#elif UNITY_ANDROID
-            url = version.AndroidUrl;
-#endif
-            return url;
-        }
-
-        protected string getManifestName()
-        {
-            string manifest = string.Empty;
-#if UNITY_IOS
-            manifest = "iOS";
-#elif UNITY_ANDROID
-            manifest = "Android";
-#endif
-            return manifest;
         }
 
         public bool IsBundleExist(string bundleName)
@@ -81,11 +61,11 @@ namespace NI
             return true;
         }
 
-        public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed,bool bLoadAssetBundleFromStreamingAssets = false)
+        public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed,bool bLoadAssetBundleFromStreamingAssets)
         {
             if (IsBundleExist(bundleName))
             {
-                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle {0} Failed , this bundle has already loaded ...", bundleName);
+                LoggerManager.Instance().LogFormat("DownLoadAssetBundle {0} Failed , this bundle has already loaded ...", bundleName);
                 if (null != onSucceed)
                 {
                     onSucceed.Invoke();
@@ -226,57 +206,33 @@ namespace NI
             }
         }
 
-        public IEnumerator CheckVersionFileMD5(ProtoTable.VersionConfigTable version, UnityAction onSucceed, UnityAction onFailed,bool fromStreamingAssets = false)
+        public IEnumerator DownLoadAssetBundles(string url, List<string> bundles, UnityAction onSucceed, UnityAction onFailed)
         {
-            if (null == version)
+            bool succeed = true;
+            for (int i = 0; i < bundles.Count; ++i)
             {
-                LoggerManager.Instance().LogErrorFormat("CheckFileMD5 Failed version is null ...");
-                if (null != onFailed)
+                var bundleName = bundles[i];
+                var assetBundleUrl = string.Format("{0}{1}", url, bundleName);
+
+                yield return DownLoadAssetBundleByBuffer(assetBundleUrl, (byte[] datas) =>
                 {
-                    onFailed.Invoke();
-                }
-                yield break;
-            }
-
-            var versionUrl = getVersionUrl(version);
-            var platformBundleName = CommonFunction.getPlatformString();
-            var platformBundle = CommonFunction.getAssetBundleSavePath(string.Format("{0}/{1}", platformBundleName, platformBundleName), false, fromStreamingAssets);
-            if(true)
-            {
-                var platformMd5 = CommonFunction.GetMD5HashFromFile(platformBundle);
-                if(string.IsNullOrEmpty(platformMd5))
+                    var savePath = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString() + "/" + bundleName, false);
+                    SaveFile(savePath, datas, () => { succeed = false; });
+                },
+                () =>
                 {
-                    if (null != onFailed)
-                    {
-                        onFailed.Invoke();
-                    }
-                    LoggerManager.Instance().LogErrorFormat("CheckMD5 Failed For {0} platformBundle ...", platformBundle);
-                    DeleteFile(platformBundle);
-                    yield break;
-                }
+                    succeed = false;
+                    LoggerManager.Instance().LogErrorFormat("DownLoad AssetBundle Failed ... For bundleName = [{0}] ...", bundleName);
+                });
 
-                LoggerManager.Instance().LogProcessFormat("[Succeed:] CheckMD5 Succeed For {0} platformBundle ...<color=#00ff00>{1}</color>", platformBundle,platformMd5);
-                yield return null;
-            }
-
-            for (int i = 0; i < version.BaseAssetBundles.Count; ++i)
-            {
-                var bundleName = string.Format("{0}/{1}", platformBundleName,version.BaseAssetBundles[i]);
-                var bundlePath = CommonFunction.getAssetBundleSavePath(bundleName,false, fromStreamingAssets);
-                var fileMd5 = CommonFunction.GetMD5HashFromFile(bundlePath);
-                if (string.IsNullOrEmpty(fileMd5))
+                if (!succeed)
                 {
                     if (null != onFailed)
                     {
                         onFailed.Invoke();
                     }
-                    LoggerManager.Instance().LogErrorFormat("CheckMD5 Failed For {0} generalBundle ...", bundlePath);
-                    DeleteFile(platformBundle);
                     yield break;
                 }
-
-                LoggerManager.Instance().LogProcessFormat("[Succeed]: CheckMD5 Succeed For {0} generalBundle ...<color=#00ff00>{1}</color>", bundlePath,fileMd5);
-                yield return null;
             }
 
             if (null != onSucceed)
@@ -285,11 +241,17 @@ namespace NI
             }
         }
 
-        public IEnumerator DownLoadCurrentVersionBundles(ProtoTable.VersionConfigTable version,UnityAction onSucceed, UnityAction onFailed)
+        public IEnumerator LoadAssetBundleFromPkg(string mBundleName, UnityAction onSucceed, UnityAction onFailed)
         {
-            if(null == version)
+            bool loadFromStreamingAssets = AssetLoaderManager.Instance().NeedLoadFromStreamingAssets(mBundleName);
+            yield return LoadAssetBundle(mBundleName, onSucceed, onFailed, loadFromStreamingAssets);
+        }
+
+        public IEnumerator LoadAssetBundleFromModule(int moduleId, UnityAction onSucceed, UnityAction onFailed)
+        {
+            var moduleItem = TableManager.Instance().GetTableItem<ModuleTable>(moduleId);
+            if (null == moduleItem)
             {
-                LoggerManager.Instance().LogErrorFormat("version is null when DownLoadCurrentVersionBundles ...");
                 if(null != onFailed)
                 {
                     onFailed.Invoke();
@@ -297,66 +259,33 @@ namespace NI
                 yield break;
             }
 
-            var versionUrl = getVersionUrl(version);
-            var url = string.Format("{0}{1}", versionUrl, CommonFunction.getPlatformString());
-            LoggerManager.Instance().LogProcessFormat("Start DownLoad Bundles Version = {0} Url = {1}",version.Desc,url);
-
             bool succeed = true;
-            yield return DownLoadAssetBundleByBuffer(url, (byte[] datas) =>
+            for(int i = 0; i < moduleItem.RequiredBundles.Count; ++i)
             {
-                LoggerManager.Instance().LogProcessFormat("DownLoad DownLoadAssetBundleByBuffer Succeed ... For DataLength = {0}", datas.Length);
-                var savePath = CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString(),false);
-                SaveFile(savePath, datas,()=>
+                yield return LoadAssetBundleFromPkg(moduleItem.RequiredBundles[i], null, ()=>
                 {
                     succeed = false;
                 });
-            },
-            ()=>
-            {
-                succeed = false;
-            });
+                if(!succeed)
+                {
+                    LoggerManager.Instance().LogErrorFormat("Load {0} AssetBundleFailed ...", moduleItem.RequiredBundles[i]);
+                    break;
+                }
+            }
 
-            if(!succeed)
+            if(succeed)
             {
-                LoggerManager.Instance().LogErrorFormat("DownLoad Manifest Failed ... For url = {0}", url);
-                if (null != onFailed)
+                if(null != onSucceed)
+                {
+                    onSucceed.Invoke();
+                }
+            }
+            else
+            {
+                if(null != onFailed)
                 {
                     onFailed.Invoke();
                 }
-                yield break;
-            }
-
-            LoggerManager.Instance().LogProcessFormat("DownLoad Manifest Succeed ... For Version = {0}", version.Desc);
-
-            for (int i = 0; i < version.BaseAssetBundles.Count; ++i)
-            {
-                var bundleName = version.BaseAssetBundles[i];
-                var assetBundleUrl = string.Format("{0}{1}", versionUrl, version.BaseAssetBundles[i]);
-
-                yield return DownLoadAssetBundleByBuffer(assetBundleUrl, (byte[] datas) =>
-                {
-                    var savePath = CommonFunction.getAssetBundleSavePath(bundleName, false);
-                    SaveFile(savePath, datas, () => { succeed = false; });
-                },
-                ()=> 
-                {
-                    succeed = false;
-                    LoggerManager.Instance().LogErrorFormat("DownLoad AssetBundle Failed ... For bundleName = [{0}] ...", bundleName);
-                });
-
-                if(!succeed)
-                {
-                    if (null != onFailed)
-                    {
-                        onFailed.Invoke();
-                    }
-                    yield break;
-                }
-            }
-
-            if(null != onSucceed)
-            {
-                onSucceed.Invoke();
             }
         }
     }

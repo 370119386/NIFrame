@@ -1,0 +1,7 @@
+package ProtoTable;
+message ModuleTable
+{
+required sint32 ID = 1;
+repeated string ModuleName = 2;
+repeated string RequiredBundles = 3;
+};

@@ -30,7 +30,6 @@ namespace NI
 
         public void Clear()
         {
-            this.mPath = string.Empty;
             mTables.Clear();
         }
 

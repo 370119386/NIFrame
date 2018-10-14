@@ -107,11 +107,20 @@ public static class CommonFunction
     {
         try
         {
+            if(!File.Exists(fileName))
+            {
+                return string.Empty;
+            }
+
             FileStream file = new FileStream(fileName, FileMode.Open);
             System.Security.Cryptography.MD5 md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
             byte[] retVal = md5.ComputeHash(file);
             file.Close();
- 
+
+            //var datas = System.IO.File.ReadAllBytes(fileName);
+            //Debug.LogErrorFormat("{0} data len = {1}", fileName, datas.Length);
+            //byte[] retVal = md5.ComputeHash(datas);
+
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < retVal.Length; i++)
             {

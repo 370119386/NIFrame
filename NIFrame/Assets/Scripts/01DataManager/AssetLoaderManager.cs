@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using ProtoTable;
 using System;
+using UnityEngine.Networking;
+using UnityEngine.Events;
 
 namespace NI
 {
@@ -34,6 +36,207 @@ namespace NI
 
         protected Dictionary<int, ResourceInfoTable> mLocalResourcesInfoTable = new Dictionary<int, ResourceInfoTable>();
         protected Dictionary<int, AssetInstance> mAlivedObjects = new Dictionary<int, AssetInstance>();
+
+        protected Dictionary<string,string> mRemoteFileMD5Dic = new Dictionary<string, string>(32);
+        protected Dictionary<string, string> mLocalFileMD5Dic = new Dictionary<string, string>(32);
+
+        public bool IsMD5FileLoadSucceed
+        {
+            get
+            {
+                return mRemoteFileMD5Dic.Count > 0;
+            }
+        }
+
+        byte[] mLocalVersion = new byte[4];
+        byte[] mRemoteVersion = new byte[4];
+        public bool IsVersionOK
+        {
+            get;private set;
+        }
+        public string RemoteVersion
+        {
+            get
+            {
+                return string.Format("{0}.{1}.{2}.{3}", mRemoteVersion[0], mRemoteVersion[1], mRemoteVersion[2], mRemoteVersion[3]);
+            }
+        }
+
+        public bool HasLargeUpdate
+        {
+            get
+            {
+                return mLocalVersion[0] != mRemoteVersion[0] || mLocalVersion[1] != mRemoteVersion[1];
+            }
+        }
+
+        public bool HasSmallUpdate
+        {
+            get
+            {
+                return mLocalVersion[2] != mRemoteVersion[2] || mLocalVersion[3] != mRemoteVersion[3];
+            }
+        }
+
+        protected bool SetVersion(string version,ref byte[] vv)
+        {
+            if(string.IsNullOrEmpty(version))
+            {
+                return false;
+            }
+
+            var tokens = version.Split('.');
+            if(tokens.Length != 4)
+            {
+                return false;
+            }
+
+            for(int i = 0; i < tokens.Length; ++i)
+            {
+                if(string.IsNullOrEmpty(tokens[i]))
+                {
+                    return false;
+                }
+
+                if(!byte.TryParse(tokens[i],out vv[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool SetLocalVersion(string version)
+        {
+            return SetVersion(version, ref mLocalVersion);
+        }
+
+        public IEnumerator LoadRemoteVersion(string url)
+        {
+            IsVersionOK = false;
+
+            UnityWebRequest www = UnityWebRequest.Get(url);
+            yield return www.Send();
+
+            if (www.isError)
+            {
+                LoggerManager.Instance().LogErrorFormat(www.error);
+            }
+            else
+            {
+                IsVersionOK = SetVersion(www.downloadHandler.text,ref mRemoteVersion);
+            }
+            www.Dispose();
+        }
+
+        public bool SetLocalVersionMD5(string content)
+        {
+            mLocalFileMD5Dic.Clear();
+            if (!string.IsNullOrEmpty(content))
+            {
+                var tokens = content.Split(new char[] { '\r', '\n' });
+                for (int i = 0; i < tokens.Length; ++i)
+                {
+                    var token = tokens[i].Split('|');
+                    if (2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
+                    {
+                        if (!mLocalFileMD5Dic.ContainsKey(token[0]))
+                        {
+                            mLocalFileMD5Dic.Add(token[0], token[1]);
+                        }
+                    }
+                }
+            }
+            return mLocalFileMD5Dic.Count > 0;
+        }
+
+        public IEnumerator LoadRemoteVersionMD5Files(string url)
+        {
+            UnityWebRequest www = UnityWebRequest.Get(url);
+            yield return www.Send();
+
+            if (www.isError)
+            {
+                LoggerManager.Instance().LogErrorFormat(www.error);
+            }
+            else
+            {
+                mRemoteFileMD5Dic.Clear();
+                if (!string.IsNullOrEmpty(www.downloadHandler.text))
+                {
+                    var tokens = www.downloadHandler.text.Split(new char[] {'\r','\n' });
+                    for(int i = 0; i < tokens.Length; ++i)
+                    {
+                        var token = tokens[i].Split('|');
+                        if(2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
+                        {
+                            if(!mRemoteFileMD5Dic.ContainsKey(token[0]))
+                            {
+                                mRemoteFileMD5Dic.Add(token[0], token[1]);
+                            }
+                        }
+                    }
+                }
+
+                if(!IsMD5FileLoadSucceed)
+                {
+                    LoggerManager.Instance().LogErrorFormat(@"Load Remote MD5File Failed ...");
+                }
+            }
+        }
+
+        public void GetNeedDownLoadModule(string[] bundles,List<string> needDownLoadBundles)
+        {
+            for (int i = 0; i < bundles.Length; ++i)
+            {
+                var bundle = bundles[i];
+                string localMd5 = string.Empty;
+                string remoteMd5 = string.Empty;
+
+                if(mLocalFileMD5Dic.ContainsKey(bundle))
+                {
+                    localMd5 = mLocalFileMD5Dic[bundle];
+                }
+
+                if(mRemoteFileMD5Dic.ContainsKey(bundle))
+                {
+                    remoteMd5 = mRemoteFileMD5Dic[bundle];
+                }
+
+                if(localMd5.Equals(remoteMd5))
+                {
+                    continue;
+                }
+
+                var localNewMd5 = CommonFunction.GetMD5HashFromFile(CommonFunction.getAssetBundleSavePath(CommonFunction.getPlatformString() + "/" + bundle, false,false));
+                if(!string.IsNullOrEmpty(localNewMd5))
+                {
+                    Debug.LogFormat("localNewMd5 = {0}", localNewMd5);
+                }
+
+                if(localNewMd5 == remoteMd5)
+                {
+                    continue;
+                }
+
+                needDownLoadBundles.Add(bundle);
+            }
+        }
+        public bool NeedLoadFromStreamingAssets(string mBundleName)
+        {
+            if(mRemoteFileMD5Dic.ContainsKey(mBundleName))
+            {
+                if(!mLocalFileMD5Dic.ContainsKey(mBundleName))
+                {
+                    return false;
+                }
+
+                return mRemoteFileMD5Dic[mBundleName].Equals(mLocalFileMD5Dic[mBundleName]);
+            }
+
+            return true;
+        }
 
         public bool Initialize(object argv)
         {

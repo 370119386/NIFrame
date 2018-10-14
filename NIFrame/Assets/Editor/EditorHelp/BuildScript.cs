@@ -122,13 +122,13 @@ public class BuildScript
 		return levels.ToArray();
 	}
 
-    [MenuItem("AssetBundles/Build AssetBundles")]
+    //[MenuItem("AssetBundles/Build AssetBundles")]
     static public void Menu_BuildAssetBundles()
     {
         BuildAssetBundles();
     }
 
-    [MenuItem("AssetBundles/BuildStreamingAssetBundles")]
+    //[MenuItem("AssetBundles/BuildStreamingAssetBundles")]
     static public void BuildStreamingAssetBundles()
     {
         string outputPath = Application.dataPath + "/StreamingAssets/AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget);
@@ -142,7 +142,105 @@ public class BuildScript
         AssetDatabase.Refresh();
     }
 
-    [MenuItem("AssetBundles/DeleteLocalAssetBundles")]
+    public static List<string> GetAllFiles(string dir, string searchPattern)
+    {
+        List<string> existFiles = new List<string>(32);
+        if (Directory.Exists(dir))
+        {
+            var files = Directory.GetFiles(dir, searchPattern);
+            existFiles.AddRange(files);
+
+            var dirs = Directory.GetDirectories(dir);
+            for(int i = 0; i < dirs.Length; ++i)
+            {
+                existFiles.AddRange(GetAllFiles(dirs[i], searchPattern));
+            }
+        }
+        return existFiles;
+    }
+
+    //[MenuItem("AssetBundles/ComputePkgAssetBundlesMD5")]
+    static public void ComputePkgAssetBundlesMD5()
+    {
+        var Dir = Application.dataPath + "/../AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/";
+        Dir = System.IO.Path.GetFullPath(Dir);
+        ComputeAssetBundlesMD5(Dir, Dir);
+        CreateUnityVersion();
+    }
+
+    static public void CopyFileMD5ToNative(string src,string dst)
+    {
+        if(File.Exists(dst))
+        {
+            File.Delete(dst);
+        }
+        System.IO.File.Copy(src, dst);
+        if(File.Exists(dst))
+        {
+            Debug.LogFormat("<color=#00ff00>CopyFileMD5ToNative Succeed [{0}] </color>",System.IO.Path.GetFileNameWithoutExtension(dst));
+        }
+    }
+
+    [MenuItem("AssetBundles/BuildPublicAsset")]
+    static public void BuildPublicAsset()
+    {
+        //打包assetBundles
+        BuildAssetBundles();
+        //计算文件MD5
+        var Dir = Application.dataPath + "/../AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/";
+        Dir = System.IO.Path.GetFullPath(Dir);
+        ComputeAssetBundlesMD5(Dir, Dir);
+        //生成MD5文件到本地
+        CopyFileMD5ToNative(Dir + "VersionMd5File.txt", Application.dataPath + "/Resources/Data/MD5/VersionMd5File.txt");
+        //生成UnityVersion 文件
+        CreateUnityVersion();
+        //生成基础bundles
+        CreateStreamingAssetBundles();
+    }
+
+    static public void ComputeAssetBundlesMD5(string path,string target)
+    {
+        var filter = @"*.manifest";
+        int endLength = filter.Length - 1;
+        var manifests = GetAllFiles(path, filter);
+        var builder = StringBuilderCache.Acquire(1024);
+        for (int i = 0; i < manifests.Count; ++i)
+        {
+            var bundleName = manifests[i].Substring(path.Length, manifests[i].Length - path.Length).Replace('\\', '/');
+            bundleName = bundleName.Remove(bundleName.Length - endLength, endLength);
+
+            var fileName = System.IO.Path.GetFileNameWithoutExtension(manifests[i]);
+            var filePath = System.IO.Path.GetDirectoryName(manifests[i]);
+
+            var md5 = CommonFunction.GetMD5HashFromFile(System.IO.Path.Combine(filePath,fileName));
+            if(i != manifests.Count - 1)
+            {
+                builder.AppendFormat("{0}|{1}\r\n", bundleName, md5);
+            }
+            else
+            {
+                builder.AppendFormat("{0}|{1}", bundleName, md5);
+            }
+            Debug.LogFormat("<color=#00ff00>{0}|{1}</color>", bundleName, md5);
+        }
+        var version = System.IO.Path.Combine(target, "VersionMd5File.txt");
+        System.IO.File.WriteAllText(version, builder.ToString());
+        StringBuilderCache.Release(builder);
+    }
+    static public void CreateUnityVersion()
+    {
+        try
+        {
+            System.IO.File.WriteAllText(Application.dataPath + "/../AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/Version.txt", Application.version);
+            Debug.LogFormat("<color=#00ff00>Version.txt</color>");
+        }
+        catch(System.Exception e)
+        {
+            Debug.LogErrorFormat(e.Message);
+        }
+    }
+
+    [MenuItem("AssetBundles/DelNativeAssetBundles")]
     static public void DeleteLocalAssetBundles()
     {
         var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false,false);
@@ -154,6 +252,80 @@ public class BuildScript
     {
         var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false, true);
         DelectDir(Dir);
+        AssetDatabase.Refresh();
+    }
+
+    [MenuItem("AssetBundles/CreateStreamingAssetBundles")]
+    static public void CreateStreamingAssetBundles()
+    {
+        var Dir = CommonFunction.getAssetBundleSavePath(string.Empty, false, true);
+        DelectDir(Dir);
+
+        var srcPath = Application.dataPath + "/Datas/Table/ModuleTable.asset";
+        var dstPath = Application.dataPath + "/Resources/Data/Table/ModuleTable.asset";
+        if (File.Exists(dstPath))
+        {
+            File.Delete(dstPath);
+        }
+        System.IO.File.Copy(srcPath, dstPath,true);
+
+        var srcBundlePath = Application.dataPath + "/../AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/";
+        srcBundlePath = System.IO.Path.GetFullPath(srcBundlePath);
+        var dstBundlePath = Dir + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/";
+
+        var moduleTable = NI.TableManager.Instance().ReadTableFromResourcesFile<ProtoTable.ModuleTable>(@"Data/Table/");
+
+        int[] modules = new int[] { 1 };
+        for(int i = 0; i < modules.Length; ++i)
+        {
+            if(!moduleTable.ContainsKey(modules[i]))
+            {
+                Debug.LogErrorFormat("打包模块不存在!!!");
+                break;
+            }
+
+            var moduleItem = moduleTable[modules[i]] as ProtoTable.ModuleTable;
+            if(null == moduleItem)
+            {
+                Debug.LogErrorFormat("打包模块不存在!!!");
+                break;
+            }
+
+            try
+            {
+                for(int j = 0; j < moduleItem.RequiredBundles.Count; ++j)
+                {
+                    var targetPath = System.IO.Path.GetFullPath(dstBundlePath + moduleItem.RequiredBundles[i]);
+                    targetPath = Path.GetDirectoryName(targetPath);
+                    if(!Directory.Exists(targetPath))
+                    {
+                        Directory.CreateDirectory(targetPath);
+                    }
+                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[i], dstBundlePath + moduleItem.RequiredBundles[i]);
+                    System.IO.File.Copy(srcBundlePath + moduleItem.RequiredBundles[i] + ".manifest", dstBundlePath + moduleItem.RequiredBundles[i] + ".manifest");
+                    Debug.LogFormat("<color=#00ff00>copy {0} succeed ...</color>", moduleItem.RequiredBundles[i]);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogErrorFormat("复制AssetBundles To StreamingAssets 文件夹失败...");
+                return;
+            }
+        }
+
+        try
+        {
+            System.IO.File.Copy(srcBundlePath + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget), dstBundlePath + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget));
+            System.IO.File.Copy(srcBundlePath + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + ".manifest", dstBundlePath + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + ".manifest");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogErrorFormat("复制Platform AssetBundles To StreamingAssets 文件夹失败...");
+            return;
+        }
+
+        Debug.LogFormat("<color=#00ff00>CreateStreamingAssetBundles Succeed ...</color>");
+
         AssetDatabase.Refresh();
     }
 
