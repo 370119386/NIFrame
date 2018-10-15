@@ -74,12 +74,17 @@ namespace NI
             }
 
             var bundleUrl = CommonFunction.getAssetBundleSavePath(string.Format("{0}/{1}",CommonFunction.getPlatformString(), bundleName),true, bLoadAssetBundleFromStreamingAssets);
-            UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
-            DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
-            www.downloadHandler = handler;
-            yield return www.Send();
+            LoggerManager.Instance().LogProcessFormat("[LoadAssetBundle]: bundleName = {0} bundleUrl = {1}", bundleName, bundleUrl);
 
-            if (www.isError)
+            //UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
+            //DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
+            //www.downloadHandler = handler;
+            WWW www = new WWW(bundleUrl);
+
+            //yield return www.Send();
+            yield return www;
+
+            if (www.error != null)
             {
                 LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed:{0} url={1}",www.error, bundleUrl);
                 if(null != onFailed)
@@ -89,7 +94,7 @@ namespace NI
             }
             else
             {
-                AssetBundle bundle = handler.assetBundle;
+                AssetBundle bundle = www.assetBundle;
                 if(null == bundle)
                 {
                     LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed: Bundle Downloaded is null ...");

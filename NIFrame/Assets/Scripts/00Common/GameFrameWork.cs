@@ -26,6 +26,9 @@ namespace NI
 
             Object.DontDestroyOnLoad(this);
 
+
+            UIManager.Instance().OpenFrame<LogFrame>(1, 1);
+
             StartCoroutine(StartCheckVersion());
         }
 
@@ -277,6 +280,8 @@ namespace NI
                 {
                     succeed = false;
                 },true);
+
+
                 if (!succeed)
                 {
                     mError = GMError.GME_LoadBaseModuleFailed;
@@ -293,6 +298,7 @@ namespace NI
                 LoggerManager.Instance().LogErrorFormat("load ModuleTable Failed ...");
                 yield break;
             }
+            LoggerManager.Instance().LogProcessFormat("Load ModuleTable Succeed !");
 
             yield return AssetBundleManager.Instance().LoadAssetBundleFromModule(1,null,()=>
             {

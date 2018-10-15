@@ -29,6 +29,11 @@ namespace NI
             return string.Empty;
         }
 
+        protected virtual bool MayLoadFromResourcesFile()
+        {
+            return false;
+        }
+
         protected virtual void _InitScriptBinder()
         {
             
@@ -63,6 +68,14 @@ namespace NI
             if(!string.IsNullOrEmpty(path))
             {
                 gameObject = AssetLoaderManager.Instance().LoadResources<GameObject>(path, AssetType.AT_PREFAB);
+                if(null == gameObject && MayLoadFromResourcesFile())
+                {
+                    var objRef = Resources.Load<GameObject>(path);
+                    if(null != objRef)
+                    {
+                        gameObject = Object.Instantiate(objRef) as GameObject;
+                    }
+                }
             }
             else
             {

@@ -21,6 +21,11 @@ namespace NI
             return @"UI/Prefabs/LogFrame";
         }
 
+        protected override bool MayLoadFromResourcesFile()
+        {
+            return true;
+        }
+
         protected override void _InitScriptBinder()
         {
             mLogger = mScriptBinder.GetObject("Logger") as Scripts.UI.ComUIListScript;
