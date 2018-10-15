@@ -83,7 +83,7 @@ public static class CommonFunction
 #if UNITY_IOS
             return "file://" + Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #elif UNITY_ANDROID
-            return "file://" + Application.persistentDataPath + "/AssetBundles/" + bundleName;
+            return "file:///" + Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #else
             return Application.persistentDataPath + "/AssetBundles/" + bundleName;
 #endif
