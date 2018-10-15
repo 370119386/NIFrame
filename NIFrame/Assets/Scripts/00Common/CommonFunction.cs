@@ -66,6 +66,8 @@ public static class CommonFunction
 
 #if UNITY_EDITOR
                 return "file://" + Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
+#elif UNITY_IOS
+                return "file://" + Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
 #else
                 return Application.streamingAssetsPath + "/AssetBundles/" + bundleName;
 #endif
