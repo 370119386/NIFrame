@@ -15,7 +15,6 @@ namespace NI
         UnityEngine.UI.Toggle mFilter_2;
         UnityEngine.UI.Toggle mFilter_3;
         UnityEngine.UI.Text mGeneratorText;
-        UnityEngine.UI.Image mgameIcon;
 
         protected override string GetPrefabPath()
         {
@@ -31,8 +30,8 @@ namespace NI
             mFilter_2 = mScriptBinder.GetObject("Filter_2") as UnityEngine.UI.Toggle;
             mFilter_3 = mScriptBinder.GetObject("Filter_3") as UnityEngine.UI.Toggle;
             mGeneratorText = mScriptBinder.GetObject("GeneratorText") as UnityEngine.UI.Text;
-            mgameIcon = mScriptBinder.GetObject("gameIcon") as UnityEngine.UI.Image;
         }
+
 
         protected void _InitLogList()
         {
