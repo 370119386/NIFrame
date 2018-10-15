@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.Networking;
 using ProtoTable;
 
 namespace NI
@@ -12,11 +10,6 @@ namespace NI
         public UILayer[] mLayers = new UILayer[0];
         public string mBaseConfigUrl = @"https://resourcekids.66uu.cn/kids/TestAds/";
         public string mBundleName = @"base_tables";
-
-        public string getConfigUrl()
-        {
-            return mBaseConfigUrl + CommonFunction.getPlatformString() + "/" + mBundleName;
-        }
 
         void Awake()
         {
@@ -31,157 +24,229 @@ namespace NI
             TableManager.Instance().Initialize(@"Data/Table/");
             AssetBundleManager.Instance().Initialize(this,mBaseConfigUrl + CommonFunction.getPlatformString() + "/");
 
-            GameObject.DontDestroyOnLoad(this);
+            Object.DontDestroyOnLoad(this);
 
             StartCoroutine(StartCheckVersion());
         }
 
-        IEnumerator StartCheckVersion()
+        protected enum GMError
         {
-            if(!AssetLoaderManager.Instance().SetLocalVersion(Application.version))
+            GME_SUCCEED = 0,
+            GME_LoadVersionFailed,
+            GME_LoadFileMD5Failed,
+            GME_DownLoadBaseModuleFailed,
+            GME_LoadBaseModuleFailed,
+        }
+        protected GMError mError = GMError.GME_SUCCEED;
+
+        protected bool ReportError()
+        {
+            if(mError == GMError.GME_SUCCEED)
             {
+                return false;
+            }
+
+            return true;
+        }
+
+        IEnumerator LoadVersionInfo()
+        {
+            if (!AssetLoaderManager.Instance().SetLocalVersion(Application.version))
+            {
+                mError = GMError.GME_LoadVersionFailed;
                 LoggerManager.Instance().LogErrorFormat("SetLocalVersion Failed V = {0}", Application.version);
                 yield break;
             }
-            Debug.LogFormat("SetLocalVersion Succeed ... [{0}]", Application.version);
 
-            var platFormUrl = mBaseConfigUrl + CommonFunction.getPlatformString();
+            var versionUrl = string.Format("{0}{1}/Version.txt", mBaseConfigUrl, CommonFunction.getPlatformString());
+            //var md5url = platformUrl + "/VersionMd5File.txt";
 
-            var versionurl = platFormUrl + "/Version.txt";
-            var md5url = platFormUrl + "/VersionMd5File.txt";
-
-            yield return AssetLoaderManager.Instance().LoadRemoteVersion(versionurl);
-            if(!AssetLoaderManager.Instance().IsVersionOK)
+            yield return AssetLoaderManager.Instance().LoadRemoteVersion(versionUrl);
+            if (!AssetLoaderManager.Instance().IsVersionOK)
             {
+                mError = GMError.GME_LoadVersionFailed;
                 LoggerManager.Instance().LogErrorFormat("SetRemoteVersion Failed ...");
                 yield break;
             }
+        }
 
-            Debug.LogFormat("SetRemoteVersion Succeed ... [{0}]",AssetLoaderManager.Instance().RemoteVersion);
-
-            if(AssetLoaderManager.Instance().HasLargeUpdate)
+        IEnumerator LoadFileMD5Info()
+        {
+            TextAsset versionText = Resources.Load<TextAsset>(@"Data/MD5/VersionMd5File");
+            if (null == versionText)
             {
-                LoggerManager.Instance().LogProcessFormat("需要进行大版本更新，请下载最新版本 !!!");
+                mError = GMError.GME_LoadFileMD5Failed;
+                LoggerManager.Instance().LogErrorFormat("加载本地 VersionMd5File 失败 !!!", mBundleName);
                 yield break;
             }
 
-            if(true)
+            var succeed = AssetLoaderManager.Instance().SetLocalVersionMD5(versionText.text);
+            if (!succeed)
             {
-                bool succeed = true;
-
-                TextAsset versionText = Resources.Load<TextAsset>(@"Data/MD5/VersionMd5File");
-                if (null == versionText)
-                {
-                    LoggerManager.Instance().LogErrorFormat("加载本地 VersionMd5File 失败 !!!", mBundleName);
-                    yield break;
-                }
-
-                succeed = AssetLoaderManager.Instance().SetLocalVersionMD5(versionText.text);
-                if (!succeed)
-                {
-                    LoggerManager.Instance().LogErrorFormat("解析本地 VersionMd5File 失败 !!!");
-                    yield break;
-                }
-
-                LoggerManager.Instance().LogFormat("加载本地 VersionMd5File 成功!!!");
+                mError = GMError.GME_LoadFileMD5Failed;
+                LoggerManager.Instance().LogErrorFormat("解析本地 VersionMd5File 失败 !!!");
+                yield break;
             }
 
+            var md5url = string.Format("{0}{1}/{2}/VersionMd5File.txt",mBaseConfigUrl,CommonFunction.getPlatformString(),
+                                       AssetLoaderManager.Instance().RemoteVersion);
+                                       
             yield return AssetLoaderManager.Instance().LoadRemoteVersionMD5Files(md5url);
+
             if (!AssetLoaderManager.Instance().IsMD5FileLoadSucceed)
             {
+                mError = GMError.GME_LoadFileMD5Failed;
                 LoggerManager.Instance().LogErrorFormat("加载远程 VersionMd5File 失败 !!!");
                 yield break;
             }
-            LoggerManager.Instance().LogFormat("加载远程 VersionMd5File 成功!!!");
+        }
 
-            if (AssetLoaderManager.Instance().HasSmallUpdate)
+        IEnumerator DownLoadBaseModule()
+        {
+            bool succeed = true;
+
+            var baseBundleUrl = string.Format("{0}{1}/{2}/", mBaseConfigUrl, CommonFunction.getPlatformString(),
+                                             AssetLoaderManager.Instance().RemoteVersion);
+
+            yield return AssetBundleManager.Instance().DownLoadAssetBundles(baseBundleUrl, new List<string>() { mBundleName }, null, () =>
             {
-                bool succeed = true;
+                succeed = false;
+            });
 
-                var baseBundleUrl = string.Format("{0}{1}/", mBaseConfigUrl, CommonFunction.getPlatformString());
-                yield return AssetBundleManager.Instance().DownLoadAssetBundles(baseBundleUrl, new List<string>() { mBundleName }, null, () =>
+            if (!succeed)
+            {
+                mError = GMError.GME_DownLoadBaseModuleFailed;
+                LoggerManager.Instance().LogErrorFormat("从远程加载[{0}] Bundle 失败 !!!", mBundleName);
+                yield break;
+            }
+
+            yield return AssetBundleManager.Instance().LoadAssetBundle(mBundleName, null, () =>
+            {
+                succeed = false;
+            }, false);
+
+            if (!succeed)
+            {
+                mError = GMError.GME_DownLoadBaseModuleFailed;
+                LoggerManager.Instance().LogErrorFormat("从本地加载 刚下载的[{0}] Bundle 失败 !!!", mBundleName);
+                yield break;
+            }
+
+            var baseBundle = AssetBundleManager.Instance().getAssetBundle(mBundleName);
+            if (null == baseBundle)
+            {
+                mError = GMError.GME_DownLoadBaseModuleFailed;
+                LoggerManager.Instance().LogFormat("加载[{0}] Bundle 失败 !!!", mBundleName);
+                yield break;
+            }
+
+            //加载模块表
+            TableManager.Instance().LoadTableFromAssetBundle<ProtoTable.ModuleTable>(baseBundle);
+            var moduleTable = TableManager.Instance().GetTable<ModuleTable>();
+            if (null == moduleTable)
+            {
+                mError = GMError.GME_DownLoadBaseModuleFailed;
+                LoggerManager.Instance().LogErrorFormat("加载模块表 ModuleTable 失败 !!!");
+                yield break;
+            }
+
+            //加载
+            int baseModuleId = 1;
+            var moduleItem = TableManager.Instance().GetTableItem<ModuleTable>(baseModuleId);
+            if (null == moduleTable)
+            {
+                mError = GMError.GME_DownLoadBaseModuleFailed;
+                LoggerManager.Instance().LogErrorFormat("加载模块表项 ModuleTable 失败 ID={0}!!!", baseModuleId);
+                yield break;
+            }
+
+            List<string> needDownLoadBundles = new List<string>(32);
+            AssetLoaderManager.Instance().GetNeedDownLoadModule(moduleItem.RequiredBundles.ToArray(), needDownLoadBundles);
+            AssetLoaderManager.Instance().GetNeedDownLoadModule(new string[]
+            {
+                    CommonFunction.getPlatformString()
+            }, needDownLoadBundles);
+
+            AssetBundleManager.Instance().UnLoadAssetBundle(mBundleName);
+
+            if (needDownLoadBundles.Count > 0)
+            {
+                for (int i = 0; i < needDownLoadBundles.Count; ++i)
+                {
+                    LoggerManager.Instance().LogProcessFormat("Bundle [{0}] 需要下载 ...", needDownLoadBundles[i]);
+                }
+
+                var bundleUrl = string.Format("{0}{1}/{2}/", mBaseConfigUrl, CommonFunction.getPlatformString(),
+                                              AssetLoaderManager.Instance().RemoteVersion);
+
+                yield return AssetBundleManager.Instance().DownLoadAssetBundles(bundleUrl, needDownLoadBundles, null, () =>
                 {
                     succeed = false;
+                    LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundles Failed ...");
                 });
 
                 if (!succeed)
                 {
-                    LoggerManager.Instance().LogErrorFormat("从远程加载[{0}] Bundle 失败 !!!", mBundleName);
+                    mError = GMError.GME_DownLoadBaseModuleFailed;
                     yield break;
                 }
+                LoggerManager.Instance().LogFormat("DownLoadBaseModule Succeed !");
+            }
+            else
+            {
+                LoggerManager.Instance().LogProcessFormat("No Bundle Need Download ...");
+            }
+        }
 
-                yield return AssetBundleManager.Instance().LoadAssetBundle(mBundleName, null, () =>
-                  {
-                      succeed = false;
-                  }, false);
+        IEnumerator StartCheckVersion()
+        {
+            //加载版本信息
+            yield return LoadVersionInfo();
 
-                if (!succeed)
-                {
-                    LoggerManager.Instance().LogErrorFormat("从本地加载 刚下载的[{0}] Bundle 失败 !!!", mBundleName);
-                    yield break;
-                }
-                LoggerManager.Instance().LogFormat("加载刚下载的[{0}] Bundle 成功 !!!", mBundleName);
+            if(ReportError())
+            {
+                yield break;
+            }
+            LoggerManager.Instance().LogProcessFormat("LoadVersionInfo Succeed !");
 
-                var baseBundle = AssetBundleManager.Instance().getAssetBundle(mBundleName);
-                if(null == baseBundle)
-                {
-                    LoggerManager.Instance().LogFormat("加载[{0}] Bundle 失败 !!!", mBundleName);
-                    yield break;
-                }
-
-                //加载模块表
-                TableManager.Instance().LoadTableFromAssetBundle<ProtoTable.ModuleTable>(baseBundle);
-                var moduleTable = TableManager.Instance().GetTable<ModuleTable>();
-                if (null == moduleTable)
-                {
-                    LoggerManager.Instance().LogErrorFormat("加载模块表 ModuleTable 失败 !!!");
-                    yield break;
-                }
-                LoggerManager.Instance().LogFormat("加载模块表 ModuleTable 成功!!!");
-
-                //加载
-                int baseModuleId = 1;
-                var moduleItem = TableManager.Instance().GetTableItem<ModuleTable>(baseModuleId);
-                if(null == moduleTable)
-                {
-                    LoggerManager.Instance().LogErrorFormat("加载模块表项 ModuleTable 失败 ID={0}!!!", baseModuleId);
-                    yield break;
-                }
-                List<string> needDownLoadBundles = new List<string>(32);
-                AssetLoaderManager.Instance().GetNeedDownLoadModule(moduleItem.RequiredBundles.ToArray(),needDownLoadBundles);
-                AssetLoaderManager.Instance().GetNeedDownLoadModule(new string[] 
-                {
-                    CommonFunction.getPlatformString()
-                }, needDownLoadBundles);
-
-                AssetBundleManager.Instance().UnLoadAssetBundle(mBundleName);
-
-                if (needDownLoadBundles.Count > 0)
-                {
-                    for (int i = 0; i < needDownLoadBundles.Count; ++i)
-                    {
-                        Debug.LogFormat("Bundle [{0}] 需要下载 ...", needDownLoadBundles[i]);
-                    }
-
-                    var bundleUrl = string.Format("{0}{1}/", mBaseConfigUrl, CommonFunction.getPlatformString());
-                    yield return AssetBundleManager.Instance().DownLoadAssetBundles(bundleUrl, needDownLoadBundles, null, () =>
-                    {
-                        succeed = false;
-                        LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundles Failed ...");
-                    });
-
-                    if(!succeed)
-                    {
-                        yield break;
-                    }
-
-                    LoggerManager.Instance().LogFormat("更新基础模块AssetBundles Succeed !!!");
-                }
-
-                LoggerManager.Instance().LogFormat("文件校验成功!!!");
+            //检测大版本更新
+            if (AssetLoaderManager.Instance().HasLargeUpdate)
+            {
+                LoggerManager.Instance().LogProcessFormat("NeedReDownLoadFrom AppleStore , Has Large Update !");
+                yield break;
             }
 
+            //加载文件MD5
+            yield return LoadFileMD5Info();
+            if(ReportError())
+            {
+                yield break;
+            }
+            LoggerManager.Instance().LogProcessFormat("Load VersionMd5File Succeed !");
+
+            //检测小版本更新
+            if (AssetLoaderManager.Instance().HasSmallUpdate)
+            {
+                //下载差异包
+                LoggerManager.Instance().LogProcessFormat("DownLoad Package From Server!");
+                yield return DownLoadBaseModule();
+                if (ReportError())
+                {
+                    yield break;
+                }
+            }
+            else
+            {
+                LoggerManager.Instance().LogProcessFormat("Need Not DownLoad Package From Server!");
+            }
+
+            //加载游戏基础模块
             yield return LoadGameBaseModule();
+            if(ReportError())
+            {
+                yield break;
+            }
+            LoggerManager.Instance().LogProcessFormat("LoadGameBaseModule Succeed !");
         }
 
         IEnumerator LoadGameBaseModule()
@@ -197,6 +262,7 @@ namespace NI
                 });
                 if (!succeed)
                 {
+                    mError = GMError.GME_LoadBaseModuleFailed;
                     LoggerManager.Instance().LogErrorFormat("Load BaseBundle {0} From Pkg Failed ...", mBundleName);
                     yield break;
                 }
@@ -210,6 +276,7 @@ namespace NI
                 },true);
                 if (!succeed)
                 {
+                    mError = GMError.GME_LoadBaseModuleFailed;
                     LoggerManager.Instance().LogErrorFormat("Load BaseBundle {0} From StreamingAssets Failed ...", mBundleName);
                     yield break;
                 }
@@ -219,6 +286,7 @@ namespace NI
             var moduleTable = TableManager.Instance().GetTable<ProtoTable.ModuleTable>();
             if(null == moduleTable)
             {
+                mError = GMError.GME_LoadBaseModuleFailed;
                 LoggerManager.Instance().LogErrorFormat("load ModuleTable Failed ...");
                 yield break;
             }
@@ -230,6 +298,7 @@ namespace NI
 
             if(!succeed)
             {
+                mError = GMError.GME_LoadBaseModuleFailed;
                 LoggerManager.Instance().LogErrorFormat("load baseModule Failed ...");
                 yield break;
             }
@@ -238,6 +307,7 @@ namespace NI
             var localResourcesInfoTable = TableManager.Instance().GetTable<ProtoTable.ResourceInfoTable>();
             if(null == localResourcesInfoTable)
             {
+                mError = GMError.GME_LoadBaseModuleFailed;
                 LoggerManager.Instance().LogErrorFormat("加载游戏资源表失败...");
                 yield break;
             }
@@ -246,6 +316,7 @@ namespace NI
             var frameTypeTable = TableManager.Instance().GetTable<ProtoTable.FrameTypeTable>();
             if (null == frameTypeTable)
             {
+                mError = GMError.GME_LoadBaseModuleFailed;
                 LoggerManager.Instance().LogErrorFormat("加载界面表失败...");
                 yield break;
             }
@@ -255,7 +326,6 @@ namespace NI
                 frameHandle = this,
                 localResourcesInfoTable = localResourcesInfoTable,
             });
-            LoggerManager.Instance().LogFormat("加载游戏基础模块成功!!!");
         }
     }
 }
