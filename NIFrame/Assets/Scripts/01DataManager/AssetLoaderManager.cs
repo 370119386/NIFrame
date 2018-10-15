@@ -151,7 +151,7 @@ namespace NI
             return mLocalFileMD5Dic.Count > 0;
         }
 
-        public IEnumerator LoadRemoteVersionMD5Files(string url)
+        public IEnumerator LoadRemoteVersionMD5Files(string url, UnityAction onSucceed, UnityAction onFailed)
         {
             UnityWebRequest www = UnityWebRequest.Get(url);
             yield return www.Send();
@@ -159,19 +159,23 @@ namespace NI
             if (www.isError)
             {
                 LoggerManager.Instance().LogErrorFormat(www.error);
+                if (null != onFailed)
+                {
+                    onFailed.Invoke();
+                }
             }
             else
             {
                 mRemoteFileMD5Dic.Clear();
                 if (!string.IsNullOrEmpty(www.downloadHandler.text))
                 {
-                    var tokens = www.downloadHandler.text.Split(new char[] {'\r','\n' });
-                    for(int i = 0; i < tokens.Length; ++i)
+                    var tokens = www.downloadHandler.text.Split(new char[] { '\r', '\n' });
+                    for (int i = 0; i < tokens.Length; ++i)
                     {
                         var token = tokens[i].Split('|');
-                        if(2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
+                        if (2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
                         {
-                            if(!mRemoteFileMD5Dic.ContainsKey(token[0]))
+                            if (!mRemoteFileMD5Dic.ContainsKey(token[0]))
                             {
                                 mRemoteFileMD5Dic.Add(token[0], token[1]);
                             }
@@ -179,9 +183,20 @@ namespace NI
                     }
                 }
 
-                if(!IsMD5FileLoadSucceed)
+                if (mRemoteFileMD5Dic.Count == 0)
                 {
                     LoggerManager.Instance().LogErrorFormat(@"Load Remote MD5File Failed ...");
+                    if (null != onFailed)
+                    {
+                        onFailed.Invoke();
+                    }
+                }
+                else
+                {
+                    if (null != onSucceed)
+                    {
+                        onSucceed.Invoke();
+                    }
                 }
             }
         }

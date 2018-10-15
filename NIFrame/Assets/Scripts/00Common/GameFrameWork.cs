@@ -91,9 +91,12 @@ namespace NI
             var md5url = string.Format("{0}{1}/{2}/VersionMd5File.txt",mBaseConfigUrl,CommonFunction.getPlatformString(),
                                        AssetLoaderManager.Instance().RemoteVersion);
                                        
-            yield return AssetLoaderManager.Instance().LoadRemoteVersionMD5Files(md5url);
+            yield return AssetLoaderManager.Instance().LoadRemoteVersionMD5Files(md5url,null,()=>
+            {
+                succeed = false;
+            });
 
-            if (!AssetLoaderManager.Instance().IsMD5FileLoadSucceed)
+            if (!succeed)
             {
                 mError = GMError.GME_LoadFileMD5Failed;
                 LoggerManager.Instance().LogErrorFormat("加载远程 VersionMd5File 失败 !!!");
