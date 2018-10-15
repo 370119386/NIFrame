@@ -76,53 +76,53 @@ namespace NI
             var bundleUrl = CommonFunction.getAssetBundleSavePath(string.Format("{0}/{1}",CommonFunction.getPlatformString(), bundleName),true, bLoadAssetBundleFromStreamingAssets);
             LoggerManager.Instance().LogProcessFormat("[LoadAssetBundle]: bundleName = {0} bundleUrl = {1}", bundleName, bundleUrl);
 
-            //UnityWebRequest www = UnityWebRequest.Get(bundleUrl);
-            //DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
-            //www.downloadHandler = handler;
-            WWW www = new WWW(bundleUrl);
-
-            //yield return www.Send();
-            yield return www;
-
-            if (www.error != null)
+            using (UnityWebRequest www = UnityWebRequest.Get(bundleUrl))
             {
-                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed:{0} url={1}",www.error, bundleUrl);
-                if(null != onFailed)
-                {
-                    onFailed.Invoke();
-                }
-            }
-            else
-            {
-                AssetBundle bundle = www.assetBundle;
-                if(null == bundle)
-                {
-                    LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed: Bundle Downloaded is null ...");
-                    yield break;
-                }
+                DownloadHandlerAssetBundle handler = new DownloadHandlerAssetBundle(www.url, 0);
+                www.downloadHandler = handler;
 
-                if(!mLoadedBundles.ContainsKey(bundleName))
+                yield return www.Send();
+
+                if (www.error != null)
                 {
-                    mLoadedBundles.Add(bundleName, new BundleInfo
+                    LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed:{0} url={1}", www.error, bundleUrl);
+                    if (null != onFailed)
                     {
-                        bundle = bundle,
-                    });
+                        onFailed.Invoke();
+                    }
                 }
                 else
                 {
-                    if(null == mLoadedBundles[bundleName])
+                    AssetBundle bundle = handler.assetBundle;
+                    if (null == bundle)
                     {
-                        mLoadedBundles[bundleName] = new BundleInfo { bundle = bundle };
+                        LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed: Bundle Downloaded is null ...");
+                        yield break;
+                    }
+
+                    if (!mLoadedBundles.ContainsKey(bundleName))
+                    {
+                        mLoadedBundles.Add(bundleName, new BundleInfo
+                        {
+                            bundle = bundle,
+                        });
                     }
                     else
                     {
-                        mLoadedBundles[bundleName].bundle = bundle;
+                        if (null == mLoadedBundles[bundleName])
+                        {
+                            mLoadedBundles[bundleName] = new BundleInfo { bundle = bundle };
+                        }
+                        else
+                        {
+                            mLoadedBundles[bundleName].bundle = bundle;
+                        }
                     }
-                }
 
-                if (null != onSucceed)
-                {
-                    onSucceed.Invoke();
+                    if (null != onSucceed)
+                    {
+                        onSucceed.Invoke();
+                    }
                 }
             }
         }
@@ -142,27 +142,29 @@ namespace NI
 
         IEnumerator DownLoadAssetBundleByBuffer(string url, UnityEngine.Events.UnityAction<byte[]> cb, UnityEngine.Events.UnityAction onFailed)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
-            DownloadHandlerBuffer handler = new DownloadHandlerBuffer();
-            www.downloadHandler = handler;
-            yield return www.Send();
-
-            if (www.isError)
+            using (UnityWebRequest www = UnityWebRequest.Get(url))
             {
-                LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundleByBuffer Failed:{0} url={1}", www.error, url);
+                DownloadHandlerBuffer handler = new DownloadHandlerBuffer();
+                www.downloadHandler = handler;
+                yield return www.Send();
 
-                if(null != onFailed)
+                if (www.isError)
                 {
-                    onFailed.Invoke();
+                    LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundleByBuffer Failed:{0} url={1}", www.error, url);
+
+                    if (null != onFailed)
+                    {
+                        onFailed.Invoke();
+                    }
                 }
-            }
-            else
-            {
-                LoggerManager.Instance().LogFormat("DownLoadAssetBundleByBuffer Succeed : Length = {0} ...", handler.data.Length);
-
-                if (null != cb)
+                else
                 {
-                    cb.Invoke(www.downloadHandler.data);
+                    LoggerManager.Instance().LogFormat("DownLoadAssetBundleByBuffer Succeed : Length = {0} ...", handler.data.Length);
+
+                    if (null != cb)
+                    {
+                        cb.Invoke(www.downloadHandler.data);
+                    }
                 }
             }
         }

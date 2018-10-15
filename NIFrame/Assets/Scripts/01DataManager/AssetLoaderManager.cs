@@ -116,18 +116,19 @@ namespace NI
         {
             IsVersionOK = false;
 
-            UnityWebRequest www = UnityWebRequest.Get(url);
-            yield return www.Send();
+            using (UnityWebRequest www = UnityWebRequest.Get(url))
+            {
+                yield return www.Send();
 
-            if (www.isError)
-            {
-                LoggerManager.Instance().LogErrorFormat(www.error);
+                if (www.isError)
+                {
+                    LoggerManager.Instance().LogErrorFormat(www.error);
+                }
+                else
+                {
+                    IsVersionOK = SetVersion(www.downloadHandler.text, ref mRemoteVersion);
+                }
             }
-            else
-            {
-                IsVersionOK = SetVersion(www.downloadHandler.text,ref mRemoteVersion);
-            }
-            www.Dispose();
         }
 
         public bool SetLocalVersionMD5(string content)
@@ -153,39 +154,13 @@ namespace NI
 
         public IEnumerator LoadRemoteVersionMD5Files(string url, UnityAction onSucceed, UnityAction onFailed)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
-            yield return www.Send();
-
-            if (www.isError)
+            using (UnityWebRequest www = UnityWebRequest.Get(url))
             {
-                LoggerManager.Instance().LogErrorFormat(www.error);
-                if (null != onFailed)
-                {
-                    onFailed.Invoke();
-                }
-            }
-            else
-            {
-                mRemoteFileMD5Dic.Clear();
-                if (!string.IsNullOrEmpty(www.downloadHandler.text))
-                {
-                    var tokens = www.downloadHandler.text.Split(new char[] { '\r', '\n' });
-                    for (int i = 0; i < tokens.Length; ++i)
-                    {
-                        var token = tokens[i].Split('|');
-                        if (2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
-                        {
-                            if (!mRemoteFileMD5Dic.ContainsKey(token[0]))
-                            {
-                                mRemoteFileMD5Dic.Add(token[0], token[1]);
-                            }
-                        }
-                    }
-                }
+                yield return www.Send();
 
-                if (mRemoteFileMD5Dic.Count == 0)
+                if (www.isError)
                 {
-                    LoggerManager.Instance().LogErrorFormat(@"Load Remote MD5File Failed ...");
+                    LoggerManager.Instance().LogErrorFormat(www.error);
                     if (null != onFailed)
                     {
                         onFailed.Invoke();
@@ -193,9 +168,37 @@ namespace NI
                 }
                 else
                 {
-                    if (null != onSucceed)
+                    mRemoteFileMD5Dic.Clear();
+                    if (!string.IsNullOrEmpty(www.downloadHandler.text))
                     {
-                        onSucceed.Invoke();
+                        var tokens = www.downloadHandler.text.Split(new char[] { '\r', '\n' });
+                        for (int i = 0; i < tokens.Length; ++i)
+                        {
+                            var token = tokens[i].Split('|');
+                            if (2 == token.Length && !string.IsNullOrEmpty(token[0]) && !string.IsNullOrEmpty(token[1]))
+                            {
+                                if (!mRemoteFileMD5Dic.ContainsKey(token[0]))
+                                {
+                                    mRemoteFileMD5Dic.Add(token[0], token[1]);
+                                }
+                            }
+                        }
+                    }
+
+                    if (mRemoteFileMD5Dic.Count == 0)
+                    {
+                        LoggerManager.Instance().LogErrorFormat(@"Load Remote MD5File Failed ...");
+                        if (null != onFailed)
+                        {
+                            onFailed.Invoke();
+                        }
+                    }
+                    else
+                    {
+                        if (null != onSucceed)
+                        {
+                            onSucceed.Invoke();
+                        }
                     }
                 }
             }

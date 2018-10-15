@@ -19,15 +19,14 @@ namespace NI
         // Use this for initialization
         void Start()
         {
+            Application.targetFrameRate = 30;
+
             SystemManager.Instance().Initialize(this);
             UIManager.Instance().Initialize(mLayers);
             TableManager.Instance().Initialize(@"Data/Table/");
             AssetBundleManager.Instance().Initialize(this,mBaseConfigUrl + CommonFunction.getPlatformString() + "/");
 
             Object.DontDestroyOnLoad(this);
-
-
-            UIManager.Instance().OpenFrame<LogFrame>(1, 1);
 
             StartCoroutine(StartCheckVersion());
         }
