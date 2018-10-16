@@ -61,6 +61,79 @@ namespace NI
             return true;
         }
 
+        public void LoadAssetBundleImmediately(string bundleName, UnityAction onSucceed, UnityAction onFailed, bool bLoadAssetBundleFromStreamingAssets)
+        {
+            if (IsBundleExist(bundleName))
+            {
+                LoggerManager.Instance().LogFormat("LoadAssetBundleImmediately {0} Failed , this bundle has already loaded ...", bundleName);
+                if (null != onSucceed)
+                {
+                    onSucceed.Invoke();
+                }
+                return;
+            }
+
+            var bundleUrl = CommonFunction.getAssetBundleSavePath(string.Format("{0}/{1}", CommonFunction.getPlatformString(), bundleName), false, bLoadAssetBundleFromStreamingAssets);
+            LoggerManager.Instance().LogProcessFormat("[LoadAssetBundleImmediately]: bundleName = {0} bundleUrl = {1}", bundleName, bundleUrl);
+
+            if(!System.IO.File.Exists(bundleUrl))
+            {
+                LoggerManager.Instance().LogErrorFormat("LoadAssetBundleImmediately File Does Not Exist For {0} !", bundleUrl);
+                if(null != onFailed)
+                {
+                    onFailed.Invoke();
+                }
+                return;
+            }
+
+            var datas = System.IO.File.ReadAllBytes(bundleUrl);
+            if(null == datas || datas.Length == 0)
+            {
+                LoggerManager.Instance().LogErrorFormat("LoadAssetBundleImmediately File Data Length = {0} !", 0);
+                if (null != onFailed)
+                {
+                    onFailed.Invoke();
+                }
+                return;
+            }
+
+            AssetBundle bundle = AssetBundle.LoadFromMemory(datas);
+            if(null == bundle)
+            {
+                LoggerManager.Instance().LogErrorFormat("Load [{0}] From Memory Failed !!!", bundleName);
+                return;
+            }
+
+            AddBundleToDic(bundleName, bundle);
+
+            if(null != onSucceed)
+            {
+                onSucceed.Invoke();
+            }
+        }
+
+        protected void AddBundleToDic(string bundleName,AssetBundle bundle)
+        {
+            if (!mLoadedBundles.ContainsKey(bundleName))
+            {
+                mLoadedBundles.Add(bundleName, new BundleInfo
+                {
+                    bundle = bundle,
+                });
+            }
+            else
+            {
+                if (null == mLoadedBundles[bundleName])
+                {
+                    mLoadedBundles[bundleName] = new BundleInfo { bundle = bundle };
+                }
+                else
+                {
+                    mLoadedBundles[bundleName].bundle = bundle;
+                }
+            }
+        }
+
         public IEnumerator LoadAssetBundle(string bundleName,UnityAction onSucceed,UnityAction onFailed,bool bLoadAssetBundleFromStreamingAssets)
         {
             if (IsBundleExist(bundleName))
@@ -97,27 +170,14 @@ namespace NI
                     if (null == bundle)
                     {
                         LoggerManager.Instance().LogErrorFormat("DownLoadAssetBundle Failed: Bundle Downloaded is null ...");
+                        if (null != onFailed)
+                        {
+                            onFailed.Invoke();
+                        }
                         yield break;
                     }
 
-                    if (!mLoadedBundles.ContainsKey(bundleName))
-                    {
-                        mLoadedBundles.Add(bundleName, new BundleInfo
-                        {
-                            bundle = bundle,
-                        });
-                    }
-                    else
-                    {
-                        if (null == mLoadedBundles[bundleName])
-                        {
-                            mLoadedBundles[bundleName] = new BundleInfo { bundle = bundle };
-                        }
-                        else
-                        {
-                            mLoadedBundles[bundleName].bundle = bundle;
-                        }
-                    }
+                    AddBundleToDic(bundleName, bundle);
 
                     if (null != onSucceed)
                     {
