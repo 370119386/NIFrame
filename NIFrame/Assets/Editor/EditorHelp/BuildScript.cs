@@ -227,6 +227,7 @@ public class BuildScript
         System.IO.File.WriteAllText(version, builder.ToString());
         StringBuilderCache.Release(builder);
     }
+
     static public void CreateUnityVersion()
     {
         try
@@ -358,5 +359,157 @@ public class BuildScript
         {
             throw;
         }
+    }
+
+    public static bool TokenVersion(string version, ref byte[] data)
+    {
+        System.Array.Clear(data, 0, data.Length);
+        var tokens = version.Split('.');
+        if (tokens.Length < 2 || tokens.Length > 4)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < tokens.Length; ++i)
+        {
+            if (!byte.TryParse(tokens[i], out data[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static public void ComputeAssetBundlesMD5(string path, ref FileMd5Pair[] md5Pairs)
+    {
+        List<FileMd5Pair> pairs = new List<FileMd5Pair>(32);
+        var filter = @"*.manifest";
+        int endLength = filter.Length - 1;
+        var manifests = GetAllFiles(path, filter);
+        for (int i = 0; i < manifests.Count; ++i)
+        {
+            var bundleName = manifests[i].Substring(path.Length, manifests[i].Length - path.Length).Replace('\\', '/');
+            bundleName = bundleName.Remove(bundleName.Length - endLength, endLength);
+
+            var fileName = System.IO.Path.GetFileNameWithoutExtension(manifests[i]);
+            var filePath = System.IO.Path.GetDirectoryName(manifests[i]);
+
+            var md5 = CommonFunction.GetMD5HashFromFile(System.IO.Path.Combine(filePath, fileName));
+            pairs.Add(new FileMd5Pair
+            {
+                key = bundleName,
+                value = md5,
+            });
+        }
+        md5Pairs = pairs.ToArray();
+
+        for (int i = 0; i < md5Pairs.Length; ++i)
+        {
+            Debug.LogFormat("<color=#00ff00>{0}</color>\t<color=#ff00ffff>{1}</color>", md5Pairs[i].key, md5Pairs[i].value);
+        }
+    }
+
+    static public void ComputeAssetBundlesDependency(string path, ref BundleDependency[] depends)
+    {
+        List<BundleDependency> dependsList = new List<BundleDependency>(32);
+
+        var filter = @"*.manifest";
+        int endLength = filter.Length - 1;
+        var manifests = GetAllFiles(path, filter);
+        var builder = StringBuilderCache.Acquire(1024);
+
+        var platform = GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget);
+        var platformBundlePath = CommonFunction.getAssetBundleSavePath(platform + "/" + platform, false, true);
+
+        var assetBundle = AssetBundle.LoadFromFile(platformBundlePath);
+        if (null != assetBundle)
+        {
+            var abManifest = assetBundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
+            if (null != abManifest)
+            {
+                for (int i = 0; i < manifests.Count; ++i)
+                {
+                    var bundleName = manifests[i].Substring(path.Length, manifests[i].Length - path.Length).Replace('\\', '/');
+                    bundleName = bundleName.Remove(bundleName.Length - endLength, endLength);
+
+                    if (!string.Equals(bundleName, platform))
+                    {
+                        dependsList.Add(new BundleDependency
+                        {
+                            key = bundleName,
+                            depends = abManifest.GetAllDependencies(bundleName),
+                        });
+                    }
+                    else
+                    {
+                        dependsList.Add(new BundleDependency
+                        {
+                            key = bundleName,
+                            depends = new string[0],
+                        });
+                    }
+                }
+            }
+        }
+        assetBundle.Unload(true);
+
+        depends = dependsList.ToArray();
+        for (int i = 0; i < depends.Length; ++i)
+        {
+            if (depends[i].depends.Length == 0)
+            {
+                Debug.LogFormat("<color=#00ff00>[{0}]</color>", depends[i].key);
+            }
+            else
+            {
+                string ret = string.Format("<color=#00ff00>[{0}]</color> <color=#ffff00ff>depends</color> ", depends[i].key);
+                for (int j = 0; j < depends[i].depends.Length; ++j)
+                {
+                    ret += string.Format("<color=#FF00FFFF>[{0}]</color>", depends[i].depends[j]);
+                }
+                ret += string.Format("<color=#FFFF00FF>[{0}]</color>", depends[i].depends.Length);
+                Debug.Log(ret);
+            }
+        }
+    }
+
+    [MenuItem("AssetBundles/MakeHotFixData")]
+    public static void MakeHotFixData()
+    {
+        //创建版本Asset文件
+        string storePath = @"Assets/Resources/Data/";
+        if (!Directory.Exists(storePath))
+        {
+            Directory.CreateDirectory(storePath);
+        }
+        var hotFixData = NI.Scriptablity.Create<HotFixData>(storePath, "HotFixData");
+        if (null == hotFixData)
+        {
+            Debug.LogErrorFormat("MakeHotFixData Failed ...");
+            return;
+        }
+
+        //解析文件版本
+        if (!TokenVersion(Application.version, ref hotFixData.datas))
+        {
+            return;
+        }
+
+        hotFixData.version = string.Format("{0}.{1}.{2}.{3}", hotFixData.datas[0], hotFixData.datas[1], hotFixData.datas[2], hotFixData.datas[3]);
+
+        hotFixData.largeV = (hotFixData.datas[0] << 8) | hotFixData.datas[1];
+        hotFixData.smallV = (hotFixData.datas[2] << 8) | hotFixData.datas[3];
+
+        Debug.LogFormat("<color=#00ff00>[Version = {0} largeV = {1} smallV = {2}]</color>", hotFixData.version, hotFixData.largeV, hotFixData.smallV);
+
+        //计算文件MD5
+        var Dir = Application.dataPath + "/../AssetBundles/" + GetPlatformFolderForAssetBundles(EditorUserBuildSettings.activeBuildTarget) + "/";
+        Dir = System.IO.Path.GetFullPath(Dir);
+        ComputeAssetBundlesMD5(Dir, ref hotFixData.bundleName2Md5);
+
+        //计算AB包依赖
+        ComputeAssetBundlesDependency(Dir, ref hotFixData.depends);
+
+        AssetDatabase.Refresh();
     }
 }
